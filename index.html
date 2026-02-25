@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#050a18">
+<title>Control Stock PRO</title>
+<style>
+:root {
+  --bg-dark: #050a18;
+  --bg-card: rgba(30,41,59,0.6);
+  --bg-input: #0f172a;
+  --accent: #3b82f6;
+  --accent-dark: #1d4ed8;
+  --success: #10b981;
+  --success-dark: #059669;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --purple: #8b5cf6;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #4b5563;
+  --border: rgba(255,255,255,0.05);
+  --border-light: rgba(255,255,255,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  background: linear-gradient(165deg, #050a18 0%, #0a1628 30%, #0c1a30 60%, #081020 100%);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding-bottom: 80px;
+  position: relative;
+}
+
+/* ===== HEADER ===== */
+.header {
+  text-align: center;
+  padding: 32px 20px 20px;
+  position: relative;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  text-shadow: 0 2px 8px rgba(59,130,246,0.3);
+}
+.header .subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 6px;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+.status-dot {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  transition: background 0.3s;
+}
+.status-dot.offline { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.status-dot.loading { background: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse 1s infinite; }
+
+/* ===== SECTIONS ===== */
+.section { padding: 0 16px; margin-bottom: 16px; }
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* ===== LOCAL SELECTOR ===== */
+.local-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.local-btn {
+  padding: 14px 8px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(180deg, #1a2744, #131d33);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 0 #0a101f, 0 4px 12px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  outline: none;
+}
+.local-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0a101f; }
+.local-btn.active {
+  background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+  color: #fff;
+  box-shadow: 0 4px 0 #1e3a8a, 0 6px 20px rgba(59,130,246,0.35);
+  outline: 2px solid rgba(96,165,250,0.4);
+  outline-offset: 2px;
+}
+.local-btn.active:active { transform: translateY(2px); box-shadow: 0 2px 0 #1e3a8a; }
+.local-icon { font-size: 20px; }
+
+/* ===== CARD ===== */
+.card {
+  background: linear-gradient(180deg, var(--bg-card), rgba(15,23,42,0.8));
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+/* ===== FORM ELEMENTS ===== */
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+}
+.form-select, .form-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  margin-bottom: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+.form-select:disabled { opacity: 0.5; cursor: not-allowed; }
+.form-input:focus, .form-select:focus {
+  border-color: rgba(59,130,246,0.4);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+select option { background: #0f172a; color: #e2e8f0; }
+
+.input-row { display: flex; gap: 8px; align-items: center; }
+.input-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ===== STOCK INDICATOR ===== */
+.stock-indicator {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s;
+}
+.stock-indicator.ok { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); }
+.stock-indicator.low { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); }
+.stock-indicator .min-label { font-size: 12px; color: #94a3b8; }
+.stock-indicator .status-label { font-size: 13px; font-weight: 700; }
+.stock-indicator.ok .status-label { color: var(--success); }
+.stock-indicator.low .status-label { color: var(--danger); }
+
+/* ===== SAVE BUTTON ===== */
+.save-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--success-dark), var(--success));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #047857, 0 6px 24px rgba(16,185,129,0.3);
+  text-transform: uppercase;
+  margin-top: 16px;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.save-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #047857, 0 3px 12px rgba(16,185,129,0.2); }
+.save-btn:disabled {
+  background: linear-gradient(135deg, #374151, #1f2937);
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.save-btn:disabled:active { transform: none; }
+
+/* ===== TABS ===== */
+.tabs-bar {
+  display: flex;
+  background: rgba(15,23,42,0.95);
+  border-top: 1px solid var(--border);
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px 0 10px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border-top: 2px solid transparent;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.tab-btn.active { color: var(--accent); border-top-color: var(--accent); }
+.tab-btn .tab-icon { font-size: 16px; margin-bottom: 2px; display: block; }
+
+/* ===== HISTORIAL ===== */
+.hist-item {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.hist-row1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.hist-product { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+.hist-stock { font-size: 15px; font-weight: 700; }
+.hist-stock.ok { color: var(--success); }
+.hist-stock.low { color: var(--danger); }
+.hist-row2 {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.hist-nota { color: var(--warning); }
+
+.filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.filter-row .form-input, .filter-row .form-select { flex: 1; margin-bottom: 0; font-size: 13px; }
+
+.badge {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: rgba(30,41,59,0.8);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* ===== STATS ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.stat-card {
+  border-radius: 12px;
+  padding: 16px;
+}
+.stat-number { font-size: 28px; font-weight: 800; margin-bottom: 2px; }
+.stat-label { font-size: 12px; color: #94a3b8; font-weight: 500; }
+
+.crit-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.crit-info { flex: 1; }
+.crit-name { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+.crit-detail { font-size: 11px; color: var(--text-muted); }
+.crit-bar { height: 4px; border-radius: 2px; margin-top: 4px; background: #1e293b; overflow: hidden; }
+.crit-bar-fill { height: 100%; background: var(--danger); border-radius: 2px; transition: width 0.5s; }
+.crit-deficit { font-size: 13px; font-weight: 700; color: var(--danger); margin-left: 12px; }
+
+/* ===== CONFIG ===== */
+.config-section { margin-bottom: 12px; }
+.config-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.chips { display: flex; flex-wrap: wrap; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(30,41,59,0.8);
+  border-radius: 20px;
+  padding: 8px 14px;
+  margin: 0 6px 6px 0;
+  font-size: 13px;
+  color: #cbd5e1;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.chip-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  font-family: inherit;
+}
+.chip-remove:hover { color: var(--danger); }
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(59,130,246,0.1);
+  border-radius: 20px;
+  padding: 8px 14px;
+  border: 1px solid rgba(59,130,246,0.2);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.add-btn:active { opacity: 0.7; }
+
+.product-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: opacity 0.2s;
+}
+.product-item.inactive { opacity: 0.4; }
+.product-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.product-detail { font-size: 11px; color: var(--text-muted); }
+.toggle-btn {
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid;
+  font-family: inherit;
+  background: transparent;
+}
+.toggle-btn.on { color: var(--success); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.15); }
+.toggle-btn.off { color: var(--danger); border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.15); }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+.modal-box {
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-title { color: #f1f5f9; font-size: 18px; font-weight: 700; margin-bottom: 16px; letter-spacing: 0.5px; }
+.modal-actions { display: flex; gap: 8px; }
+.modal-cancel {
+  flex: 1; padding: 12px; border-radius: 10px;
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
+  color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  text-align: center;
+}
+.modal-confirm {
+  flex: 1; padding: 12px; border-radius: 10px; border: none;
+  background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+  color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.modal-confirm.green {
+  background: linear-gradient(135deg, var(--success-dark), var(--success));
+  box-shadow: 0 3px 0 #047857;
+}
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 12px 28px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  animation: slideDown 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.success { background: linear-gradient(135deg, #059669, #10b981); }
+.toast.error { background: linear-gradient(135deg, #dc2626, #ef4444); }
+
+/* ===== FOOTER ===== */
+.footer {
+  text-align: center;
+  padding: 24px 16px 90px;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 30px 0;
+  color: var(--text-dim);
+}
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+/* ===== LOADING ===== */
+.loading-state {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+}
+
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.section-title { font-size: 16px; font-weight: 700; color: #f1f5f9; }
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideDown { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div id="statusDot" class="status-dot"></div>
+    <h1>CONTROL STOCK</h1>
+    <div class="subtitle">PRO</div>
+  </div>
+
+  <!-- LOCAL SELECTOR -->
+  <div class="section">
+    <div class="section-label">Seleccioná tu Local</div>
+    <div class="local-grid" id="localGrid"></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" class="hidden">
+
+    <!-- TAB: REGISTRO -->
+    <div id="tabRegistro" class="section">
+      <div class="card">
+        <label class="form-label">Responsable</label>
+        <select class="form-select" id="selResponsable">
+          <option value="">Seleccionar...</option>
+        </select>
+
+        <label class="form-label">Categoría</label>
+        <select class="form-select" id="selCategoria">
+          <option value="">Seleccionar...</option>
+        </select>
+
+        <label class="form-label">Insumo / Producto</label>
+        <select class="form-select" id="selProducto" disabled>
+          <option value="">Primero elegí categoría...</option>
+        </select>
+
+        <label class="form-label">Stock Actual</label>
+        <div class="input-row">
+          <input type="number" class="form-input" id="inputStock" placeholder="0" min="0" step="0.5" style="flex:1;margin-bottom:0">
+          <span class="input-unit" id="unitLabel">—</span>
+        </div>
+
+        <div id="stockIndicator" class="stock-indicator hidden">
+          <span class="min-label" id="minLabel"></span>
+          <span class="status-label" id="statusLabel"></span>
+        </div>
+
+        <div style="margin-top:14px">
+          <label class="form-label">Nota (opcional)</label>
+          <input type="text" class="form-input" id="inputNota" placeholder="Observación..." style="margin-bottom:0">
+        </div>
+
+        <button class="save-btn" id="btnSave" disabled>GUARDAR REGISTRO</button>
+      </div>
+    </div>
+
+    <!-- TAB: HISTORIAL -->
+    <div id="tabHistorial" class="section hidden">
+      <div class="card">
+        <div class="header-row">
+          <h3 class="section-title">Historial de Stock</h3>
+          <span class="badge" id="histCount">0 registros</span>
+        </div>
+        <div class="filter-row">
+          <input type="text" class="form-input" id="histSearch" placeholder="🔍 Buscar producto...">
+          <select class="form-select" id="histCatFilter">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div id="histList"></div>
+      </div>
+    </div>
+
+    <!-- TAB: STATS -->
+    <div id="tabStats" class="section hidden">
+      <h3 class="section-title" id="statsTitle" style="margin-bottom:14px"></h3>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="card">
+        <div class="header-row">
+          <h4 style="font-size:14px;font-weight:700;color:#f1f5f9">⚠ Productos Críticos</h4>
+          <span style="font-size:11px;color:#ef4444;font-weight:600">TOP 10</span>
+        </div>
+        <div id="critList"></div>
+      </div>
+    </div>
+
+    <!-- TAB: CONFIG -->
+    <div id="tabConfig" class="section hidden">
+      <h3 class="section-title" id="configTitle" style="margin-bottom:14px"></h3>
+
+      <div class="card config-section">
+        <div class="config-title">Responsables</div>
+        <div class="chips" id="chipsResponsables"></div>
+      </div>
+
+      <div class="card config-section">
+        <div class="config-title">Categorías</div>
+        <div class="chips" id="chipsCategorias"></div>
+      </div>
+
+      <div class="card">
+        <div class="header-row">
+          <div class="config-title" style="margin-bottom:0">Productos</div>
+          <button class="add-btn" onclick="openModal('producto')">+ Nuevo</button>
+        </div>
+        <div id="productList"></div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:#4b5563">
+        Los cambios se guardan automáticamente en Google Sheets
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">Docks del Puerto • Tigre</div>
+
+  <!-- TABS BAR -->
+  <div class="tabs-bar hidden" id="tabsBar">
+    <button class="tab-btn active" data-tab="registro"><span class="tab-icon">📝</span>Registro</button>
+    <button class="tab-btn" data-tab="historial"><span class="tab-icon">📋</span>Historial</button>
+    <button class="tab-btn" data-tab="stats"><span class="tab-icon">📊</span>Stats</button>
+    <button class="tab-btn" data-tab="config"><span class="tab-icon">⚙️</span>Config</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3 class="modal-title" id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURACIÓN — CAMBIAR ESTA URL POR TU DEPLOY DE APPS SCRIPT
+// ============================================================
+const SCRIPT_URL = "PEGAR_TU_URL_DE_APPS_SCRIPT_AQUI";
+
+// ============================================================
+// DATOS
+// ============================================================
+const LOCALES = [
+  { id: "umo", name: "Umo Grill", icon: "🔥" },
+  { id: "gelato", name: "Puerto Gelato", icon: "🍦" },
+  { id: "brooklyn", name: "Brooklyn", icon: "🍔" },
+  { id: "trento", name: "Trento Cafe", icon: "☕" },
+  { id: "eventos", name: "Eventos", icon: "🎪" },
+  { id: "shopping", name: "Shopping", icon: "🏬" },
+];
+
+let state = {
+  localId: null,
+  localName: "",
+  activeTab: "registro",
+  products: [],
+  responsables: [],
+  categorias: [],
+  history: [],
+  stats: null,
+  loading: false,
+};
+
+// ============================================================
+// API CALLS
+// ============================================================
+async function apiCall(params) {
+  const dot = document.getElementById("statusDot");
+  dot.className = "status-dot loading";
+  
+  try {
+    const url = new URL(SCRIPT_URL);
+    Object.keys(params).forEach(k => {
+      const v = typeof params[k] === "object" ? JSON.stringify(params[k]) : params[k];
+      url.searchParams.append(k, v);
+    });
+    
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    
+    dot.className = "status-dot";
+    if (data.error) throw new Error(data.error);
+    return data;
+  } catch(err) {
+    dot.className = "status-dot offline";
+    setTimeout(() => dot.className = "status-dot", 3000);
+    throw err;
+  }
+}
+
+async function loadAllData(localId) {
+  state.loading = true;
+  renderLoading();
+  try {
+    const data = await apiCall({ action: "getAllData", localId });
+    state.products = data.products || [];
+    state.responsables = data.responsables || [];
+    state.categorias = data.categorias || [];
+    state.history = data.history || [];
+    state.stats = data.stats || null;
+    state.loading = false;
+    renderCurrentTab();
+  } catch(err) {
+    state.loading = false;
+    showToast("Error cargando datos: " + err.message, "error");
+  }
+}
+
+async function loadHistory() {
+  try {
+    const data = await apiCall({ action: "getHistory", localId: state.localId, limit: "50" });
+    state.history = data.history || [];
+    renderHistorial();
+  } catch(err) {
+    console.error(err);
+  }
+}
+
+async function loadStats() {
+  try {
+    const data = await apiCall({ action: "getStats", localId: state.localId });
+    state.stats = data;
+    renderStats();
+  } catch(err) {
+    console.error(err);
+  }
+}
+
+// ============================================================
+// INIT LOCAL GRID
+// ============================================================
+function initLocalGrid() {
+  const grid = document.getElementById("localGrid");
+  grid.innerHTML = LOCALES.map(l => `
+    <button class="local-btn" data-id="${l.id}" onclick="selectLocal('${l.id}', '${l.name}')">
+      <span class="local-icon">${l.icon}</span>
+      <span>${l.name}</span>
+    </button>
+  `).join("");
+}
+
+function selectLocal(id, name) {
+  state.localId = id;
+  state.localName = name;
+  state.activeTab = "registro";
+  
+  // Update buttons
+  document.querySelectorAll(".local-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.id === id);
+  });
+  
+  // Show main content
+  document.getElementById("mainContent").classList.remove("hidden");
+  document.getElementById("tabsBar").classList.remove("hidden");
+  
+  // Reset tabs
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.tab === "registro");
+  });
+  
+  // Reset form
+  resetForm();
+  
+  // Load data
+  loadAllData(id);
+}
+
+function resetForm() {
+  document.getElementById("selResponsable").value = "";
+  document.getElementById("selCategoria").value = "";
+  document.getElementById("selProducto").value = "";
+  document.getElementById("selProducto").disabled = true;
+  document.getElementById("inputStock").value = "";
+  document.getElementById("inputNota").value = "";
+  document.getElementById("unitLabel").textContent = "—";
+  document.getElementById("stockIndicator").classList.add("hidden");
+  document.getElementById("btnSave").disabled = true;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function initTabs() {
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      state.activeTab = tab;
+      
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+      
+      ["tabRegistro", "tabHistorial", "tabStats", "tabConfig"].forEach(id => {
+        document.getElementById(id).classList.add("hidden");
+      });
+      
+      const tabEl = document.getElementById("tab" + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if (tabEl) tabEl.classList.remove("hidden");
+      
+      // Load data for tab
+      if (tab === "historial") loadHistory();
+      if (tab === "stats") loadStats();
+      if (tab === "config") renderConfig();
+      if (tab === "registro") renderRegistro();
+    });
+  });
+}
+
+function renderCurrentTab() {
+  renderRegistro();
+  renderHistorial();
+  renderStats();
+  renderConfig();
+  
+  // Show active tab
+  ["tabRegistro", "tabHistorial", "tabStats", "tabConfig"].forEach(id => {
+    document.getElementById(id).classList.add("hidden");
+  });
+  const tabId = "tab" + state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
+  document.getElementById(tabId).classList.remove("hidden");
+}
+
+function renderLoading() {
+  document.getElementById("tabRegistro").innerHTML = '<div class="card"><div class="loading-state"><div style="animation:pulse 1s infinite">Cargando datos del local...</div></div></div>';
+}
+
+// ============================================================
+// RENDER: REGISTRO
+// ============================================================
+function renderRegistro() {
+  // Re-create registro tab content
+  document.getElementById("tabRegistro").innerHTML = `
+    <div class="card">
+      <label class="form-label">Responsable</label>
+      <select class="form-select" id="selResponsable" onchange="validateForm()">
+        <option value="">Seleccionar...</option>
+        ${state.responsables.map(r => `<option value="${r}">${r}</option>`).join("")}
+      </select>
+
+      <label class="form-label">Categoría</label>
+      <select class="form-select" id="selCategoria" onchange="onCategoriaChange()">
+        <option value="">Seleccionar...</option>
+        ${state.categorias.map(c => `<option value="${c}">${c}</option>`).join("")}
+      </select>
+
+      <label class="form-label">Insumo / Producto</label>
+      <select class="form-select" id="selProducto" disabled onchange="onProductoChange()">
+        <option value="">Primero elegí categoría...</option>
+      </select>
+
+      <label class="form-label">Stock Actual</label>
+      <div class="input-row">
+        <input type="number" class="form-input" id="inputStock" placeholder="0" min="0" step="0.5" style="flex:1;margin-bottom:0" oninput="onStockInput()">
+        <span class="input-unit" id="unitLabel">—</span>
+      </div>
+
+      <div id="stockIndicator" class="stock-indicator hidden">
+        <span class="min-label" id="minLabel"></span>
+        <span class="status-label" id="statusLabel"></span>
+      </div>
+
+      <div style="margin-top:14px">
+        <label class="form-label">Nota (opcional)</label>
+        <input type="text" class="form-input" id="inputNota" placeholder="Observación..." style="margin-bottom:0">
+      </div>
+
+      <button class="save-btn" id="btnSave" disabled onclick="handleSave()">GUARDAR REGISTRO</button>
+    </div>
+  `;
+}
+
+function onCategoriaChange() {
+  const cat = document.getElementById("selCategoria").value;
+  const sel = document.getElementById("selProducto");
+  
+  if (!cat) {
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">Primero elegí categoría...</option>';
+  } else {
+    const filtered = state.products.filter(p => p.categoria === cat && p.activo);
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">Seleccionar...</option>' +
+      filtered.map(p => `<option value="${p.sku}">${p.producto}</option>`).join("");
+  }
+  
+  document.getElementById("unitLabel").textContent = "—";
+  document.getElementById("stockIndicator").classList.add("hidden");
+  validateForm();
+}
+
+function onProductoChange() {
+  const sku = document.getElementById("selProducto").value;
+  const prod = state.products.find(p => p.sku === sku);
+  
+  document.getElementById("unitLabel").textContent = prod ? prod.unidad : "—";
+  onStockInput();
+  validateForm();
+}
+
+function onStockInput() {
+  const sku = document.getElementById("selProducto").value;
+  const stockVal = document.getElementById("inputStock").value;
+  const prod = state.products.find(p => p.sku === sku);
+  const indicator = document.getElementById("stockIndicator");
+  
+  if (prod && stockVal !== "") {
+    const val = parseFloat(stockVal);
+    const isLow = val < prod.minimo;
+    indicator.classList.remove("hidden", "ok", "low");
+    indicator.classList.add(isLow ? "low" : "ok");
+    document.getElementById("minLabel").textContent = `Mínimo: ${prod.minimo} ${prod.unidad}`;
+    document.getElementById("statusLabel").textContent = isLow ? "⚠ BAJO MÍNIMO" : "✓ OK";
+  } else {
+    indicator.classList.add("hidden");
+  }
+  
+  validateForm();
+}
+
+function validateForm() {
+  const resp = document.getElementById("selResponsable")?.value;
+  const prod = document.getElementById("selProducto")?.value;
+  const stock = document.getElementById("inputStock")?.value;
+  const btn = document.getElementById("btnSave");
+  if (btn) btn.disabled = !resp || !prod || stock === "" || stock === undefined;
+}
+
+async function handleSave() {
+  const btn = document.getElementById("btnSave");
+  const resp = document.getElementById("selResponsable").value;
+  const sku = document.getElementById("selProducto").value;
+  const stockVal = document.getElementById("inputStock").value;
+  const nota = document.getElementById("inputNota").value;
+  const prod = state.products.find(p => p.sku === sku);
+  
+  if (!resp || !sku || stockVal === "") {
+    showToast("Completá todos los campos obligatorios", "error");
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = "GUARDANDO...";
+  
+  try {
+    await apiCall({
+      action: "saveStock",
+      localId: state.localId,
+      entry: {
+        usuario: resp,
+        sku: sku,
+        producto: prod ? prod.producto : "",
+        stock: parseFloat(stockVal),
+        nota: nota
+      }
+    });
+    
+    document.getElementById("inputStock").value = "";
+    document.getElementById("inputNota").value = "";
+    document.getElementById("selProducto").value = "";
+    document.getElementById("unitLabel").textContent = "—";
+    document.getElementById("stockIndicator").classList.add("hidden");
+    
+    showToast("✓ Registro guardado correctamente", "success");
+  } catch(err) {
+    showToast("Error: " + err.message, "error");
+  } finally {
+    btn.textContent = "GUARDAR REGISTRO";
+    validateForm();
+  }
+}
+
+// ============================================================
+// RENDER: HISTORIAL
+// ============================================================
+function renderHistorial() {
+  const list = document.getElementById("histList");
+  const count = document.getElementById("histCount");
+  if (!list) return;
+  
+  count.textContent = state.history.length + " registros";
+  
+  // Update category filter
+  const catFilter = document.getElementById("histCatFilter");
+  const currentCat = catFilter.value;
+  catFilter.innerHTML = '<option value="">Todas</option>' + 
+    state.categorias.map(c => `<option value="${c}" ${c === currentCat ? 'selected' : ''}>${c}</option>`).join("");
+  
+  applyHistorialFilters();
+}
+
+function applyHistorialFilters() {
+  const search = (document.getElementById("histSearch")?.value || "").toLowerCase();
+  const catFilter = document.getElementById("histCatFilter")?.value || "";
+  const list = document.getElementById("histList");
+  
+  const filtered = state.history.filter(h => {
+    const matchText = !search || h.producto.toLowerCase().includes(search);
+    const prod = state.products.find(p => p.sku === h.sku);
+    const matchCat = !catFilter || (prod && prod.categoria === catFilter);
+    return matchText && matchCat;
+  }).slice(0, 30);
+  
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>Sin registros</div>';
+    return;
+  }
+  
+  list.innerHTML = filtered.map(h => {
+    const prod = state.products.find(p => p.sku === h.sku);
+    const min = prod ? prod.minimo : 0;
+    const isLow = h.stock < min;
+    const unit = prod ? prod.unidad : "";
+    return `
+      <div class="hist-item">
+        <div class="hist-row1">
+          <span class="hist-product">${h.producto}</span>
+          <span class="hist-stock ${isLow ? 'low' : 'ok'}">${h.stock} ${unit}</span>
+        </div>
+        <div class="hist-row2">
+          <span>${h.fecha} ${h.hora} • ${h.usuario}</span>
+          ${h.nota ? `<span class="hist-nota">${h.nota}</span>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// Historial filter listeners
+document.getElementById("histSearch")?.addEventListener("input", applyHistorialFilters);
+document.getElementById("histCatFilter")?.addEventListener("change", applyHistorialFilters);
+
+// ============================================================
+// RENDER: STATS
+// ============================================================
+function renderStats() {
+  const title = document.getElementById("statsTitle");
+  const grid = document.getElementById("statsGrid");
+  const critList = document.getElementById("critList");
+  
+  if (!title || !state.stats) return;
+  
+  title.textContent = `Estadísticas — ${state.localName}`;
+  
+  const s = state.stats;
+  const cards = [
+    { val: s.totalProducts, label: "Productos activos", color: "#3b82f6" },
+    { val: s.belowMinimum, label: "Bajo mínimo", color: s.belowMinimum > 0 ? "#ef4444" : "#10b981" },
+    { val: s.totalRegistros, label: "Registros totales", color: "#f59e0b" },
+    { val: s.lastEntry ? s.lastEntry.hora : "—", label: "Último cierre", color: "#8b5cf6" },
+  ];
+  
+  grid.innerHTML = cards.map(c => `
+    <div class="stat-card" style="background:linear-gradient(135deg,${c.color}15,${c.color}08);border:1px solid ${c.color}30">
+      <div class="stat-number" style="color:${c.color}">${c.val}</div>
+      <div class="stat-label">${c.label}</div>
+    </div>
+  `).join("");
+  
+  const critical = s.critical || [];
+  if (critical.length === 0) {
+    critList.innerHTML = '<div class="empty-state" style="padding:20px 0"><div style="font-size:28px;margin-bottom:4px">✓</div><div style="font-size:13px">Todo por encima del mínimo</div></div>';
+  } else {
+    critList.innerHTML = critical.map(c => {
+      const pct = Math.min((c.currentStock / c.minimo) * 100, 100);
+      return `
+        <div class="crit-item">
+          <div class="crit-info">
+            <div class="crit-name">${c.producto}</div>
+            <div class="crit-detail">Stock: ${c.currentStock} / Mín: ${c.minimo} ${c.unidad}</div>
+            <div class="crit-bar"><div class="crit-bar-fill" style="width:${pct}%"></div></div>
+          </div>
+          <div class="crit-deficit">-${c.deficit}</div>
+        </div>
+      `;
+    }).join("");
+  }
+}
+
+// ============================================================
+// RENDER: CONFIG
+// ============================================================
+function renderConfig() {
+  document.getElementById("configTitle").textContent = `Configuración — ${state.localName}`;
+  
+  // Responsables
+  const chipsR = document.getElementById("chipsResponsables");
+  chipsR.innerHTML = state.responsables.map(r => `
+    <span class="chip">
+      ${r}
+      <button class="chip-remove" onclick="removeConfig('responsable','${r}')">×</button>
+    </span>
+  `).join("") + `<button class="add-btn" onclick="openModal('responsable')">+ Agregar</button>`;
+  
+  // Categorías
+  const chipsC = document.getElementById("chipsCategorias");
+  chipsC.innerHTML = state.categorias.map(c => `
+    <span class="chip">
+      ${c}
+      <button class="chip-remove" onclick="removeConfig('categoria','${c}')">×</button>
+    </span>
+  `).join("") + `<button class="add-btn" onclick="openModal('categoria')">+ Agregar</button>`;
+  
+  // Productos
+  const prodList = document.getElementById("productList");
+  prodList.innerHTML = state.products.map(p => `
+    <div class="product-item ${p.activo ? '' : 'inactive'}">
+      <div>
+        <div class="product-name">${p.producto}</div>
+        <div class="product-detail">${p.sku} • ${p.categoria} • Mín: ${p.minimo} ${p.unidad}</div>
+      </div>
+      <button class="toggle-btn ${p.activo ? 'on' : 'off'}" onclick="toggleProd('${p.sku}', ${p.activo})">
+        ${p.activo ? 'Activo' : 'Inactivo'}
+      </button>
+    </div>
+  `).join("");
+}
+
+async function removeConfig(tipo, valor) {
+  try {
+    await apiCall({ action: "removeConfig", localId: state.localId, tipo, valor });
+    if (tipo === "responsable") state.responsables = state.responsables.filter(r => r !== valor);
+    if (tipo === "categoria") state.categorias = state.categorias.filter(c => c !== valor);
+    renderConfig();
+    showToast("Eliminado", "success");
+  } catch(err) {
+    showToast("Error: " + err.message, "error");
+  }
+}
+
+async function toggleProd(sku, currentActive) {
+  try {
+    await apiCall({ action: "toggleProduct", localId: state.localId, sku, activo: String(!currentActive) });
+    state.products = state.products.map(p => p.sku === sku ? {...p, activo: !currentActive} : p);
+    renderConfig();
+  } catch(err) {
+    showToast("Error: " + err.message, "error");
+  }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(tipo) {
+  const overlay = document.getElementById("modalOverlay");
+  const title = document.getElementById("modalTitle");
+  const body = document.getElementById("modalBody");
+  const actions = document.getElementById("modalActions");
+  
+  overlay.classList.remove("hidden");
+  
+  if (tipo === "responsable") {
+    title.textContent = "Agregar Responsable";
+    body.innerHTML = `<input type="text" class="form-input" id="modalInput" placeholder="Nombre del responsable" autofocus>`;
+    actions.innerHTML = `
+      <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmAddConfig('responsable')">Agregar</button>
+    `;
+    setTimeout(() => document.getElementById("modalInput")?.focus(), 100);
+  } else if (tipo === "categoria") {
+    title.textContent = "Agregar Categoría";
+    body.innerHTML = `<input type="text" class="form-input" id="modalInput" placeholder="Nombre de la categoría" autofocus>`;
+    actions.innerHTML = `
+      <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmAddConfig('categoria')">Agregar</button>
+    `;
+    setTimeout(() => document.getElementById("modalInput")?.focus(), 100);
+  } else if (tipo === "producto") {
+    title.textContent = "Agregar Producto";
+    body.innerHTML = `
+      <label class="form-label">SKU</label>
+      <input type="text" class="form-input" id="modalSku" placeholder="UMO-011">
+      <label class="form-label">Nombre del Producto</label>
+      <input type="text" class="form-input" id="modalProdName" placeholder="Nombre...">
+      <label class="form-label">Categoría</label>
+      <select class="form-select" id="modalProdCat">
+        ${state.categorias.map(c => `<option value="${c}">${c}</option>`).join("")}
+      </select>
+      <label class="form-label">Unidad</label>
+      <select class="form-select" id="modalProdUnit">
+        <option value="kg">kg</option>
+        <option value="u">u (unidades)</option>
+        <option value="l">l (litros)</option>
+        <option value="bandeja">bandeja</option>
+      </select>
+      <label class="form-label">Stock Mínimo</label>
+      <input type="number" class="form-input" id="modalProdMin" placeholder="0" value="0">
+    `;
+    actions.innerHTML = `
+      <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-confirm green" onclick="confirmAddProduct()">Agregar</button>
+    `;
+  }
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.add("hidden");
+}
+
+async function confirmAddConfig(tipo) {
+  const val = document.getElementById("modalInput").value.trim();
+  if (!val) return;
+  
+  try {
+    await apiCall({ action: "addConfig", localId: state.localId, tipo, valor: val });
+    if (tipo === "responsable") state.responsables.push(val);
+    if (tipo === "categoria") state.categorias.push(val);
+    closeModal();
+    renderConfig();
+    renderRegistro();
+    showToast(tipo === "responsable" ? "Responsable agregado" : "Categoría agregada", "success");
+  } catch(err) {
+    showToast("Error: " + err.message, "error");
+  }
+}
+
+async function confirmAddProduct() {
+  const sku = document.getElementById("modalSku").value.trim();
+  const nombre = document.getElementById("modalProdName").value.trim();
+  const cat = document.getElementById("modalProdCat").value;
+  const unit = document.getElementById("modalProdUnit").value;
+  const min = parseInt(document.getElementById("modalProdMin").value) || 0;
+  
+  if (!sku || !nombre || !cat) {
+    showToast("Completá SKU, nombre y categoría", "error");
+    return;
+  }
+  
+  try {
+    const product = { sku, producto: nombre, categoria: cat, unidad: unit, minimo: min };
+    await apiCall({ action: "addProduct", localId: state.localId, product });
+    state.products.push({ ...product, activo: true });
+    closeModal();
+    renderConfig();
+    showToast("Producto agregado", "success");
+  } catch(err) {
+    showToast("Error: " + err.message, "error");
+  }
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(message, type) {
+  const toast = document.getElementById("toast");
+  toast.className = "toast " + type;
+  toast.innerHTML = `<span style="font-size:18px">${type === "success" ? "✓" : "✕"}</span> ${message}`;
+  toast.classList.remove("hidden");
+  
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.add("hidden"), 2800);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener("DOMContentLoaded", () => {
+  initLocalGrid();
+  initTabs();
+  
+  // Check if SCRIPT_URL is configured
+  if (SCRIPT_URL === "PEGAR_TU_URL_DE_APPS_SCRIPT_AQUI") {
+    document.getElementById("statusDot").className = "status-dot offline";
+    showToast("⚠ Configurar SCRIPT_URL en el código", "error");
+  }
+});
+</script>
+</body>
+</html>
