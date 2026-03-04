@@ -580,7 +580,7 @@ function getConfig(localId) {
     }
   });
   
-  return { responsables, categorias };
+  const prodResult = getProducts(localId);   return { responsables, categorias, productos: prodResult.products || [] };
 }
 
 function getHistory(localId, limit) {
