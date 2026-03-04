@@ -921,36 +921,86 @@ function renderConfig() {
     <div class="card">
       <h3 style="margin-bottom:14px; font-size:14px;">Configuración — ${state.localName}</h3>
       
+      <!-- RESPONSABLES -->
       <div class="config-section">
-        <div class="config-title">Responsables</div>
+        <div class="config-title">👤 Responsables</div>
         <div class="config-list">
           ${state.responsables.map(r => `
-            <span class="config-item">${r}</span>
+            <span class="config-item">
+              ${r}
+              <button class="remove-btn" onclick="removeResponsable('${r}')">✕</button>
+            </span>
           `).join("")}
+        </div>
+        <button class="add-btn" onclick="showAddResponsable()">+ Agregar Responsable</button>
+        <div id="addResponsableForm" class="hidden" style="margin-top:10px;">
+          <input type="text" id="inputResponsable" placeholder="Nombre del responsable" class="form-input" style="margin-bottom:8px;">
+          <div style="display:flex; gap:8px;">
+            <button onclick="addResponsable()" class="save-btn" style="flex:1; padding:10px; margin:0;">Agregar</button>
+            <button onclick="hideAddResponsable()" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
+          </div>
         </div>
       </div>
       
+      <!-- CATEGORÍAS -->
       <div class="config-section">
-        <div class="config-title">Categorías</div>
+        <div class="config-title">📂 Categorías</div>
         <div class="config-list">
           ${state.categorias.map(c => `
-            <span class="config-item">${c}</span>
+            <span class="config-item">
+              ${c}
+              <button class="remove-btn" onclick="removeCategoria('${c}')">✕</button>
+            </span>
           `).join("")}
+        </div>
+        <button class="add-btn" onclick="showAddCategoria()">+ Agregar Categoría</button>
+        <div id="addCategoriaForm" class="hidden" style="margin-top:10px;">
+          <input type="text" id="inputCategoria" placeholder="Nombre de la categoría" class="form-input" style="margin-bottom:8px;">
+          <div style="display:flex; gap:8px;">
+            <button onclick="addCategoria()" class="save-btn" style="flex:1; padding:10px; margin:0;">Agregar</button>
+            <button onclick="hideAddCategoria()" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
+          </div>
         </div>
       </div>
       
+      <!-- PRODUCTOS -->
       <div class="config-section">
-        <div class="config-title">Catálogo de Productos</div>
+        <div class="config-title">📦 Catálogo de Productos</div>
         <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
           ${state.products.length} productos registrados
         </div>
         <div style="max-height:300px; overflow-y:auto;">
           ${state.products.filter(p => p.activo).map(p => `
-            <div style="padding:8px; border-bottom:1px solid var(--border); font-size:12px;">
-              <div style="font-weight:600; color:var(--text);">${p.sku} • ${p.producto}</div>
-              <div style="color:var(--text-muted); font-size:11px;">${p.categoria} • Mín: ${p.minimo} ${p.unidad}</div>
+            <div style="padding:10px; border-bottom:1px solid var(--border); font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-weight:600; color:var(--text);">${p.sku} • ${p.producto}</div>
+                <div style="color:var(--text-muted); font-size:11px;">${p.categoria} • Mín: ${p.minimo} ${p.unidad}</div>
+              </div>
+              <button class="remove-btn" onclick="removeProduct('${p.sku}')" style="margin:0;">✕</button>
             </div>
           `).join("")}
+        </div>
+        <button class="add-btn" onclick="showAddProduct()">+ Agregar Producto</button>
+        <div id="addProductForm" class="hidden" style="margin-top:10px; padding:12px; background:rgba(30,64,175,0.05); border-radius:12px;">
+          <label class="form-label">Categoría</label>
+          <select class="form-select" id="selCatForProduct" style="margin-bottom:8px;">
+            <option value="">Seleccionar...</option>
+            ${state.categorias.map(c => `<option value="${c}">${c}</option>`).join("")}
+          </select>
+          
+          <label class="form-label">Nombre del Producto</label>
+          <input type="text" id="inputProductName" placeholder="Ej: Vacío" class="form-input" style="margin-bottom:8px;">
+          
+          <label class="form-label">Unidad</label>
+          <input type="text" id="inputProductUnit" placeholder="Ej: kg, u, l" class="form-input" style="margin-bottom:8px;">
+          
+          <label class="form-label">Stock Mínimo</label>
+          <input type="number" id="inputProductMin" placeholder="0" min="0" class="form-input" style="margin-bottom:8px;">
+          
+          <div style="display:flex; gap:8px;">
+            <button onclick="addProduct()" class="save-btn" style="flex:1; padding:10px; margin:0;">Agregar</button>
+            <button onclick="hideAddProduct()" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -996,6 +1046,171 @@ function renderCurrentTab() {
 
 function renderLoading() {
   document.getElementById("tabRegistro").innerHTML = '<div class="card"><div class="loading-state"><div style="animation:pulse 1s infinite">Cargando datos del local...</div></div></div>';
+}
+
+// ============================================================
+// CONFIG MANAGEMENT
+// ============================================================
+
+// ── RESPONSABLES ──
+function showAddResponsable() {
+  document.getElementById("addResponsableForm").classList.remove("hidden");
+  document.getElementById("inputResponsable").focus();
+}
+
+function hideAddResponsable() {
+  document.getElementById("addResponsableForm").classList.add("hidden");
+  document.getElementById("inputResponsable").value = "";
+}
+
+async function addResponsable() {
+  const valor = document.getElementById("inputResponsable").value.trim();
+  if (!valor) { showToast("Escribí un nombre", "error"); return; }
+  if (state.responsables.includes(valor)) { showToast("Ya existe", "error"); return; }
+  
+  try {
+    const result = await apiCall({
+      action: "addConfig",
+      localId: state.localId,
+      tipo: "responsable",
+      valor: valor
+    });
+    if (result.error) { showToast("Error: " + result.error, "error"); }
+    else {
+      state.responsables.push(valor);
+      showToast("Responsable agregado ✓", "success");
+      hideAddResponsable();
+      renderConfig();
+    }
+  } catch(err) { showToast("Error: " + err.message, "error"); }
+}
+
+async function removeResponsable(valor) {
+  if (!confirm("¿Eliminar a " + valor + "?")) return;
+  try {
+    const result = await apiCall({
+      action: "removeConfig",
+      localId: state.localId,
+      tipo: "responsable",
+      valor: valor
+    });
+    if (result.error) { showToast("Error: " + result.error, "error"); }
+    else {
+      state.responsables = state.responsables.filter(r => r !== valor);
+      showToast("Responsable eliminado ✓", "success");
+      renderConfig();
+    }
+  } catch(err) { showToast("Error: " + err.message, "error"); }
+}
+
+// ── CATEGORÍAS ──
+function showAddCategoria() {
+  document.getElementById("addCategoriaForm").classList.remove("hidden");
+  document.getElementById("inputCategoria").focus();
+}
+
+function hideAddCategoria() {
+  document.getElementById("addCategoriaForm").classList.add("hidden");
+  document.getElementById("inputCategoria").value = "";
+}
+
+async function addCategoria() {
+  const valor = document.getElementById("inputCategoria").value.trim();
+  if (!valor) { showToast("Escribí un nombre", "error"); return; }
+  if (state.categorias.includes(valor)) { showToast("Ya existe", "error"); return; }
+  
+  try {
+    const result = await apiCall({
+      action: "addConfig",
+      localId: state.localId,
+      tipo: "categoria",
+      valor: valor
+    });
+    if (result.error) { showToast("Error: " + result.error, "error"); }
+    else {
+      state.categorias.push(valor);
+      showToast("Categoría agregada ✓", "success");
+      hideAddCategoria();
+      renderConfig();
+    }
+  } catch(err) { showToast("Error: " + err.message, "error"); }
+}
+
+async function removeCategoria(valor) {
+  if (!confirm("¿Eliminar la categoría " + valor + "?")) return;
+  try {
+    const result = await apiCall({
+      action: "removeConfig",
+      localId: state.localId,
+      tipo: "categoria",
+      valor: valor
+    });
+    if (result.error) { showToast("Error: " + result.error, "error"); }
+    else {
+      state.categorias = state.categorias.filter(c => c !== valor);
+      showToast("Categoría eliminada ✓", "success");
+      renderConfig();
+    }
+  } catch(err) { showToast("Error: " + err.message, "error"); }
+}
+
+// ── PRODUCTOS ──
+function showAddProduct() {
+  document.getElementById("addProductForm").classList.remove("hidden");
+  document.getElementById("selCatForProduct").focus();
+}
+
+function hideAddProduct() {
+  document.getElementById("addProductForm").classList.add("hidden");
+  document.getElementById("selCatForProduct").value = "";
+  document.getElementById("inputProductName").value = "";
+  document.getElementById("inputProductUnit").value = "";
+  document.getElementById("inputProductMin").value = "";
+}
+
+async function addProduct() {
+  const cat = document.getElementById("selCatForProduct").value;
+  const name = document.getElementById("inputProductName").value.trim();
+  const unit = document.getElementById("inputProductUnit").value.trim() || "u";
+  const min = parseInt(document.getElementById("inputProductMin").value) || 0;
+  
+  if (!cat) { showToast("Selecciona una categoría", "error"); return; }
+  if (!name) { showToast("Escribí el nombre del producto", "error"); return; }
+  
+  try {
+    const result = await apiCall({
+      action: "addProduct",
+      localId: state.localId,
+      product: JSON.stringify({
+        producto: name,
+        categoria: cat,
+        unidad: unit,
+        minimo: min
+      })
+    });
+    if (result.error) { showToast("Error: " + result.error, "error"); }
+    else {
+      showToast("Producto agregado: " + result.sku + " ✓", "success");
+      hideAddProduct();
+      loadAllData(state.localId);
+    }
+  } catch(err) { showToast("Error: " + err.message, "error"); }
+}
+
+async function removeProduct(sku) {
+  if (!confirm("¿Eliminar el producto " + sku + "?")) return;
+  try {
+    const result = await apiCall({
+      action: "removeProduct",
+      localId: state.localId,
+      sku: sku
+    });
+    if (result.error) { showToast("Error: " + result.error, "error"); }
+    else {
+      showToast("Producto eliminado ✓", "success");
+      loadAllData(state.localId);
+    }
+  } catch(err) { showToast("Error: " + err.message, "error"); }
 }
 
 // ============================================================
