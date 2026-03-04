@@ -561,7 +561,7 @@ select option { background: #0f172a; color: #e2e8f0; }
 // ============================================================
 // CONFIG
 // ============================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzC8jdLxzKJkM_Pcdpxf7tZ-ahSuPFIW8mZT5v0YWYa0TqVkP3i8wyOFZpsIV4YGNMB/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRNFXn2QkrxoLV30DEXZDTfJOKv6lh7aCNlRW_tqlySMBD5Jy4rfNo5Pbb32MB8It1/exec";
 
 const LOCALES = [
   { id: "umo", name: "Umo Grill", icon: "🔥" },
@@ -585,11 +585,6 @@ const state = {
   categorias: [],
   history: [],
   stats: null,
-  allConfig: null,
-  historyPage: 0,
-  historyPageSize: 50,
-  cacheTimestamp: null,
-  cacheTTL: 3600000
 };
 
 // ============================================================
@@ -604,19 +599,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadGlobalConfig() {
   try {
-    const cached = localStorage.getItem("config_cache");
-    if (cached) {
-      const {value, timestamp, ttl} = JSON.parse(cached);
-      if (Date.now() - timestamp < ttl) {
-        state.allConfig = value;
-        return;
-      }
-    }
     const config = await apiCall({ action: "getConfig" });
     state.allConfig = config;
-    localStorage.setItem("config_cache", JSON.stringify({value: config, timestamp: Date.now(), ttl: 3600000}));
   } catch (err) {
-    console.error("Error cargando configuración:", err);
+    console.error("Error cargando configuración global:", err);
   }
 }
 
