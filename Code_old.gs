@@ -1,7 +1,8 @@
-// CONTROL STOCK PRO — Google Apps Script Backend v2.1 MEJORADO
+// ============================================================
+// CONTROL STOCK PRO — Google Apps Script Backend v2.0
 // Docks del Puerto • Tigre
 // ============================================================
-// MEJORAS: SKU automático, Config separada, Excel import/export
+// CON: Plantilla PRO formateada + Notificaciones Email + Telegram
 // ============================================================
 
 // ============================================================
@@ -9,18 +10,18 @@
 // ============================================================
 
 // Telegram Bot
-const TELEGRAM_BOT_TOKEN = "PEGAR_TU_BOT_TOKEN";
-const TELEGRAM_CHAT_ID   = "PEGAR_TU_CHAT_ID";
+const TELEGRAM_BOT_TOKEN = "PEGAR_TU_BOT_TOKEN";  // Obtener de @BotFather
+const TELEGRAM_CHAT_ID   = "PEGAR_TU_CHAT_ID";     // Obtener de @userinfobot
 
-// Email
-const NOTIFY_EMAILS = "jacobo@tumail.com";
+// Email (puede ser más de uno, separados por coma)
+const NOTIFY_EMAILS = "jacobo@tumail.com";  // Cambiar por tu email real
 
 // Activar/desactivar notificaciones
 const NOTIFY_EMAIL_ON    = true;
 const NOTIFY_TELEGRAM_ON = true;
 
 // Umbral: notificar solo si stock está bajo mínimo
-const NOTIFY_ONLY_CRITICAL = false;
+const NOTIFY_ONLY_CRITICAL = false; // true = solo avisa si < mínimo, false = avisa siempre
 
 // ============================================================
 // CONSTANTES
@@ -43,35 +44,22 @@ const LOCAL_NAMES = {
   "shopping": "Shopping"
 };
 
-// Prefijos para SKU automático
-const SKU_PREFIXES = {
-  "umo": "UMO",
-  "gelato": "GEL",
-  "brooklyn": "BRO",
-  "trento": "TRE",
-  "eventos": "EVE",
-  "shopping": "SHP"
-};
-
 const CONFIG_SHEET = "Config";
 const DASHBOARD_SHEET = "Dashboard";
 
-// Paleta de colores corporativa (Google-inspired)
+// Paleta de colores corporativa
 const COLORS = {
-  primary:    "#1e40af",
-  primaryLight: "#3b82f6",
-  primaryDark: "#1e3a8a",
-  secondary:  "#0f766e",
-  secondaryLight: "#14b8a6",
-  success:    "#16a34a",
-  successDark:"#15803d",
-  danger:     "#dc2626",
-  dangerDark: "#b91c1c",
-  warning:    "#ea580c",
-  
   navyDark:   "#0a0f1c",
   navy:       "#111827",
   navyMid:    "#1a2236",
+  accent:     "#3b82f6",
+  accentDark: "#1d4ed8",
+  success:    "#10b981",
+  successDark:"#059669",
+  danger:     "#ef4444",
+  dangerDark: "#dc2626",
+  warning:    "#f59e0b",
+  purple:     "#8b5cf6",
   white:      "#ffffff",
   lightGray:  "#f1f5f9",
   medGray:    "#94a3b8",
@@ -85,12 +73,25 @@ const COLORS = {
   borderColor:"#e2e8f0",
 };
 
+// Colores por local (pestaña)
+const TAB_COLORS = {
+  "UmoGrill":      "#dc2626",  // rojo fuego
+  "PuertoGelato":  "#2563eb",  // azul
+  "Brooklyn":      "#d97706",  // naranja
+  "TrentoCafe":    "#059669",  // verde
+  "Eventos":       "#7c3aed",  // violeta
+  "Shopping":      "#0891b2",  // cyan
+  "Config":        "#374151",  // gris oscuro
+  "Dashboard":     "#0f172a",  // navy
+};
+
 // ============================================================
-// 🎨 FUNCIÓN: CREAR ESTRUCTURA PROFESIONAL v2
+// 🎨 FUNCIÓN: CREAR ESTRUCTURA PROFESIONAL
 // Ejecutar UNA SOLA VEZ
 // ============================================================
 function crearEstructura() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.setSpreadsheetTheme(SpreadsheetApp.newSpreadsheetTheme().setConcreteColor(SpreadsheetApp.ThemeColorType.TEXT, SpreadsheetApp.newColor().setRgbColor("#1a1a2e").build()).build());
   
   // ── Crear hojas por local ──
   Object.entries(LOCALES).forEach(([localId, sheetName]) => {
@@ -105,7 +106,7 @@ function crearEstructura() {
     formatLocalSheet(sheet, sheetName, localId);
   });
   
-  // ── Crear hoja Config (NUEVA ESTRUCTURA) ──
+  // ── Crear hoja Config ──
   let configSheet = ss.getSheetByName(CONFIG_SHEET);
   if (!configSheet) {
     configSheet = ss.insertSheet(CONFIG_SHEET);
@@ -113,7 +114,7 @@ function crearEstructura() {
     configSheet.clear();
     configSheet.clearFormats();
   }
-  formatConfigSheetV2(configSheet);
+  formatConfigSheet(configSheet);
   
   // ── Crear hoja Dashboard ──
   let dashSheet = ss.getSheetByName(DASHBOARD_SHEET);
@@ -135,7 +136,13 @@ function crearEstructura() {
     try { ss.deleteSheet(sheet1); } catch(e) {}
   }
   
-  SpreadsheetApp.getUi().alert("✅ Estructura PRO v2 creada con éxito.\n\nAhora ejecutá 'cargarDatosDemo' para cargar productos de ejemplo.");
+  // Setear colores de pestañas
+  Object.entries(TAB_COLORS).forEach(([name, color]) => {
+    const s = ss.getSheetByName(name);
+    if (s) s.setTabColor(color);
+  });
+  
+  SpreadsheetApp.getUi().alert("✅ Estructura PRO creada con éxito.\n\nAhora ejecutá 'cargarDatosDemo' para cargar productos de ejemplo.");
 }
 
 // ============================================================
@@ -155,7 +162,7 @@ function formatLocalSheet(sheet, sheetName, localId) {
   // ── Subtítulo PRODUCTOS (fila 2, A2:F2) ──
   sheet.getRange("A2:F2").merge()
     .setValue("CATÁLOGO DE PRODUCTOS")
-    .setFontSize(10).setFontWeight("bold").setFontColor(COLORS.primaryLight)
+    .setFontSize(10).setFontWeight("bold").setFontColor(COLORS.accent)
     .setBackground(COLORS.navy)
     .setHorizontalAlignment("center");
   sheet.setRowHeight(2, 28);
@@ -166,7 +173,7 @@ function formatLocalSheet(sheet, sheetName, localId) {
     .setFontSize(9).setFontWeight("bold").setFontColor(COLORS.white)
     .setBackground(COLORS.prodHeaderBg)
     .setHorizontalAlignment("center")
-    .setBorder(true, true, true, true, true, true, COLORS.primary, SpreadsheetApp.BorderStyle.SOLID);
+    .setBorder(true, true, true, true, true, true, COLORS.accent, SpreadsheetApp.BorderStyle.SOLID);
   sheet.setRowHeight(3, 30);
   
   // ── Anchos de columnas Products ──
@@ -179,7 +186,7 @@ function formatLocalSheet(sheet, sheetName, localId) {
   
   // ── Columna G = separador ──
   sheet.setColumnWidth(7, 8);
-  sheet.getRange("G1:G500").setBackground(COLORS.primary);
+  sheet.getRange("G1:G500").setBackground(COLORS.accent);
   
   // ── Subtítulo STOCKLOG (fila 2, H2:N2) ──
   sheet.getRange("H2:N2").merge()
@@ -206,6 +213,7 @@ function formatLocalSheet(sheet, sheetName, localId) {
   sheet.setColumnWidth(14, 160);  // Nota
   
   // ── Formato de datos (filas 4-100) ──
+  // Products: alternate row colors
   for (let r = 4; r <= 100; r++) {
     const bg = (r % 2 === 0) ? COLORS.rowEven : COLORS.rowOdd;
     sheet.getRange(r, 1, 1, 6).setBackground(bg)
@@ -222,6 +230,9 @@ function formatLocalSheet(sheet, sheetName, localId) {
   sheet.getRange("K4:K100").setHorizontalAlignment("center");
   sheet.getRange("M4:M100").setHorizontalAlignment("center").setFontWeight("bold");
   
+  // ── Formato condicional: stock bajo mínimo ──
+  // Se aplica después cuando hay datos
+  
   // ── Freeze headers ──
   sheet.setFrozenRows(3);
   
@@ -232,93 +243,55 @@ function formatLocalSheet(sheet, sheetName, localId) {
 }
 
 // ============================================================
-// FORMATEAR HOJA CONFIG v2 (SEPARADA)
+// FORMATEAR HOJA CONFIG
 // ============================================================
-function formatConfigSheetV2(sheet) {
+function formatConfigSheet(sheet) {
   // Título
-  sheet.getRange("A1:H1").merge()
-    .setValue("⚙️ CONFIGURACIÓN GLOBAL — ESTRUCTURA SEPARADA")
+  sheet.getRange("A1:C1").merge()
+    .setValue("⚙️ CONFIGURACIÓN GLOBAL")
     .setFontSize(14).setFontWeight("bold").setFontColor(COLORS.white)
     .setBackground(COLORS.navyDark)
     .setHorizontalAlignment("center");
   sheet.setRowHeight(1, 40);
   
-  // ── SECCIÓN A: RESPONSABLES ──
-  sheet.getRange("A3:B3").merge()
-    .setValue("RESPONSABLES")
-    .setFontSize(11).setFontWeight("bold").setFontColor(COLORS.white)
+  // Headers
+  const headers = ["LOCAL ID", "TIPO", "VALOR"];
+  sheet.getRange("A2:C2").setValues([headers])
+    .setFontSize(10).setFontWeight("bold").setFontColor(COLORS.white)
     .setBackground(COLORS.configHeaderBg)
-    .setHorizontalAlignment("center");
-  
-  const respHeaders = ["LOCAL ID", "RESPONSABLE"];
-  sheet.getRange("A4:B4").setValues([respHeaders])
-    .setFontSize(9).setFontWeight("bold").setFontColor(COLORS.white)
-    .setBackground(COLORS.primary)
     .setHorizontalAlignment("center")
-    .setBorder(true, true, true, true, true, true, COLORS.primary, SpreadsheetApp.BorderStyle.SOLID);
+    .setBorder(true, true, true, true, true, true, COLORS.purple, SpreadsheetApp.BorderStyle.SOLID);
+  sheet.setRowHeight(2, 30);
   
-  // ── SECCIÓN B: CATEGORÍAS ──
-  sheet.getRange("D3:E3").merge()
-    .setValue("CATEGORÍAS")
-    .setFontSize(11).setFontWeight("bold").setFontColor(COLORS.white)
-    .setBackground(COLORS.configHeaderBg)
-    .setHorizontalAlignment("center");
+  sheet.setColumnWidth(1, 120);
+  sheet.setColumnWidth(2, 120);
+  sheet.setColumnWidth(3, 200);
   
-  const catHeaders = ["LOCAL ID", "CATEGORÍA"];
-  sheet.getRange("D4:E4").setValues([catHeaders])
-    .setFontSize(9).setFontWeight("bold").setFontColor(COLORS.white)
-    .setBackground(COLORS.primary)
-    .setHorizontalAlignment("center")
-    .setBorder(true, true, true, true, true, true, COLORS.primary, SpreadsheetApp.BorderStyle.SOLID);
-  
-  // ── SECCIÓN C: PRÓXIMO SKU POR LOCAL (para auto-increment) ──
-  sheet.getRange("G3:H3").merge()
-    .setValue("PRÓXIMO SKU")
-    .setFontSize(11).setFontWeight("bold").setFontColor(COLORS.white)
-    .setBackground(COLORS.configHeaderBg)
-    .setHorizontalAlignment("center");
-  
-  const skuHeaders = ["LOCAL ID", "PRÓXIMO #"];
-  sheet.getRange("G4:H4").setValues([skuHeaders])
-    .setFontSize(9).setFontWeight("bold").setFontColor(COLORS.white)
-    .setBackground(COLORS.primary)
-    .setHorizontalAlignment("center")
-    .setBorder(true, true, true, true, true, true, COLORS.primary, SpreadsheetApp.BorderStyle.SOLID);
-  
-  // Inicializar próximos SKU
-  const localIds = Object.keys(LOCALES);
-  localIds.forEach((id, idx) => {
-    sheet.getRange(5 + idx, 7).setValue(id);
-    sheet.getRange(5 + idx, 8).setValue(1);
-  });
-  
-  // ── Anchos ──
-  sheet.setColumnWidth(1, 100);
-  sheet.setColumnWidth(2, 150);
-  sheet.setColumnWidth(3, 20);
-  sheet.setColumnWidth(4, 100);
-  sheet.setColumnWidth(5, 150);
-  sheet.setColumnWidth(6, 20);
-  sheet.setColumnWidth(7, 100);
-  sheet.setColumnWidth(8, 80);
-  
-  // ── Formato de datos ──
-  for (let r = 5; r <= 50; r++) {
+  // Alternate rows
+  for (let r = 3; r <= 200; r++) {
     const bg = (r % 2 === 0) ? COLORS.rowEven : COLORS.rowOdd;
-    sheet.getRange(r, 1, 1, 2).setBackground(bg).setFontSize(10);
-    sheet.getRange(r, 4, 1, 2).setBackground(bg).setFontSize(10);
-    sheet.getRange(r, 7, 1, 2).setBackground(bg).setFontSize(10);
+    sheet.getRange(r, 1, 1, 3).setBackground(bg).setFontSize(10)
+      .setBorder(false, false, true, false, false, false, COLORS.borderColor, SpreadsheetApp.BorderStyle.DOTTED);
   }
   
-  sheet.setFrozenRows(4);
+  sheet.setFrozenRows(2);
+  
+  // Leyenda
+  sheet.getRange("E1").setValue("📌 LEYENDA").setFontWeight("bold").setFontSize(10);
+  sheet.getRange("E2").setValue("tipo = 'responsable' → Nombre del responsable");
+  sheet.getRange("E3").setValue("tipo = 'categoria' → Categoría de producto");
+  sheet.getRange("E2:E3").setFontSize(9).setFontColor(COLORS.medGray);
+  sheet.setColumnWidth(5, 300);
 }
 
 // ============================================================
 // FORMATEAR HOJA DASHBOARD
 // ============================================================
 function formatDashboardSheet(sheet) {
+  // Fondo general
   sheet.getRange("A1:J30").setBackground(COLORS.navyDark);
   
+  // Título principal
   sheet.getRange("A1:J1").merge()
     .setValue("📦 CONTROL STOCK PRO — DASHBOARD")
     .setFontSize(18).setFontWeight("bold").setFontColor(COLORS.white)
@@ -333,12 +306,14 @@ function formatDashboardSheet(sheet) {
     .setHorizontalAlignment("center");
   sheet.setRowHeight(2, 30);
   
-  sheet.getRange("A3:J3").setBackground(COLORS.primary);
+  // Separador
+  sheet.getRange("A3:J3").setBackground(COLORS.accent);
   sheet.setRowHeight(3, 3);
   
+  // Headers resumen por local
   sheet.getRange("A5:J5").merge()
     .setValue("RESUMEN POR LOCAL — Último stock registrado")
-    .setFontSize(12).setFontWeight("bold").setFontColor(COLORS.primary)
+    .setFontSize(12).setFontWeight("bold").setFontColor(COLORS.accent)
     .setBackground(COLORS.navy).setHorizontalAlignment("center");
   
   const dashHeaders = ["LOCAL", "PRODUCTOS", "REGISTROS", "BAJO MÍNIMO", "ÚLTIMO REGISTRO", "ESTADO"];
@@ -347,6 +322,7 @@ function formatDashboardSheet(sheet) {
     .setBackground(COLORS.prodHeaderBg).setHorizontalAlignment("center");
   sheet.setRowHeight(6, 28);
   
+  // Filas por local
   const localNames = Object.values(LOCAL_NAMES);
   const localIds = Object.keys(LOCALES);
   for (let i = 0; i < localNames.length; i++) {
@@ -355,10 +331,11 @@ function formatDashboardSheet(sheet) {
     sheet.getRange(row, 1, 1, 6).setBackground(bg).setFontColor(COLORS.lightGray).setFontSize(10).setHorizontalAlignment("center");
     sheet.getRange(row, 1).setValue(localNames[i]).setHorizontalAlignment("left").setFontWeight("bold");
     
+    // Fórmulas que se actualizan automáticamente
     const sn = LOCALES[localIds[i]];
     sheet.getRange(row, 2).setFormula(`=COUNTA('${sn}'!A4:A100)`);
     sheet.getRange(row, 3).setFormula(`=COUNTA('${sn}'!H4:H500)`);
-    sheet.getRange(row, 4).setFormula(`=0`);
+    sheet.getRange(row, 4).setFormula(`=0`); // Se actualiza vía script
     sheet.getRange(row, 5).setFormula(`=IF(COUNTA('${sn}'!H4:H500)>0, INDEX('${sn}'!H4:I500, COUNTA('${sn}'!H4:H500), 1) & " " & INDEX('${sn}'!H4:I500, COUNTA('${sn}'!H4:H500), 2), "Sin datos")`);
     sheet.getRange(row, 6).setValue("✅ OK");
   }
@@ -370,12 +347,14 @@ function formatDashboardSheet(sheet) {
   sheet.setColumnWidth(5, 150);
   sheet.setColumnWidth(6, 80);
   
+  // Nota
   sheet.getRange("A15:J15").merge()
     .setValue("💡 Este dashboard se actualiza automáticamente cada vez que se registra stock desde la app")
     .setFontSize(9).setFontColor(COLORS.medGray).setBackground(COLORS.navyDark).setHorizontalAlignment("center");
   
   sheet.setFrozenRows(6);
   
+  // Ancho columnas extras
   for (let c = 7; c <= 10; c++) sheet.setColumnWidth(c, 80);
 }
 
@@ -385,28 +364,23 @@ function formatDashboardSheet(sheet) {
 function cargarDatosDemo() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // Config - Responsables
+  // Config
   const configSheet = ss.getSheetByName(CONFIG_SHEET);
-  const respData = [
-    ["umo","Jacobo"],["umo","Martín"],["umo","Laura"],
-    ["gelato","Jacobo"],["gelato","Sofía"],["gelato","Pedro"],
-    ["brooklyn","Jacobo"],["brooklyn","Diego"],["brooklyn","Ana"],
-    ["trento","Jacobo"],["trento","Valeria"],["trento","Lucas"],
-    ["eventos","Jacobo"],["eventos","Carolina"],
-    ["shopping","Jacobo"],["shopping","Roberto"],
+  const configData = [
+    ["umo","responsable","Jacobo"],["umo","responsable","Martín"],["umo","responsable","Laura"],
+    ["umo","categoria","Carnes"],["umo","categoria","Verduras"],["umo","categoria","Bebidas"],["umo","categoria","Descartables"],
+    ["gelato","responsable","Jacobo"],["gelato","responsable","Sofía"],["gelato","responsable","Pedro"],
+    ["gelato","categoria","Helados"],["gelato","categoria","Toppings"],["gelato","categoria","Conos"],["gelato","categoria","Bebidas"],
+    ["brooklyn","responsable","Jacobo"],["brooklyn","responsable","Diego"],["brooklyn","responsable","Ana"],
+    ["brooklyn","categoria","Panes"],["brooklyn","categoria","Proteínas"],["brooklyn","categoria","Salsas"],["brooklyn","categoria","Papas"],
+    ["trento","responsable","Jacobo"],["trento","responsable","Valeria"],["trento","responsable","Lucas"],
+    ["trento","categoria","Café"],["trento","categoria","Pastelería"],["trento","categoria","Bebidas"],["trento","categoria","Descartables"],
+    ["eventos","responsable","Jacobo"],["eventos","responsable","Carolina"],
+    ["eventos","categoria","Vajilla"],["eventos","categoria","Bebidas"],["eventos","categoria","Insumos"],
+    ["shopping","responsable","Jacobo"],["shopping","responsable","Roberto"],
+    ["shopping","categoria","Limpieza"],["shopping","categoria","Mantenimiento"],["shopping","categoria","Seguridad"],
   ];
-  configSheet.getRange(5, 1, respData.length, 2).setValues(respData);
-  
-  // Config - Categorías
-  const catData = [
-    ["umo","Carnes"],["umo","Verduras"],["umo","Bebidas"],["umo","Descartables"],
-    ["gelato","Helados"],["gelato","Toppings"],["gelato","Conos"],["gelato","Bebidas"],
-    ["brooklyn","Panes"],["brooklyn","Proteínas"],["brooklyn","Salsas"],["brooklyn","Papas"],
-    ["trento","Café"],["trento","Pastelería"],["trento","Bebidas"],["trento","Descartables"],
-    ["eventos","Vajilla"],["eventos","Bebidas"],["eventos","Insumos"],
-    ["shopping","Limpieza"],["shopping","Mantenimiento"],["shopping","Seguridad"],
-  ];
-  configSheet.getRange(5, 4, catData.length, 2).setValues(catData);
+  configSheet.getRange(3, 1, configData.length, 3).setValues(configData);
   
   // Productos por local
   const productSets = {
@@ -424,73 +398,217 @@ function cargarDatosDemo() {
     ],
     "PuertoGelato": [
       ["GEL-001","Chocolate","Helados","kg",5,true],
-      ["GEL-002","Vainilla","Helados","kg",5,true],
-      ["GEL-003","Fresa","Helados","kg",4,true],
-      ["GEL-004","Granola","Toppings","kg",2,true],
-      ["GEL-005","Conos de waffle","Conos","u",100,true],
-      ["GEL-006","Coca-Cola","Bebidas","u",20,true],
+      ["GEL-002","Dulce de leche","Helados","kg",5,true],
+      ["GEL-003","Frutilla","Helados","kg",4,true],
+      ["GEL-004","Salsa chocolate","Toppings","l",2,true],
+      ["GEL-005","Cono simple","Conos","u",100,true],
+      ["GEL-006","Cucurucho","Conos","u",80,true],
     ],
     "Brooklyn": [
-      ["BRO-001","Pan integral","Panes","u",30,true],
-      ["BRO-002","Pan blanco","Panes","u",40,true],
-      ["BRO-003","Pechuga de pollo","Proteínas","kg",10,true],
-      ["BRO-004","Mayonesa","Salsas","kg",2,true],
-      ["BRO-005","Papas fritas","Papas","kg",5,true],
+      ["BRK-001","Pan brioche","Panes","u",50,true],
+      ["BRK-002","Carne smash","Proteínas","kg",10,true],
+      ["BRK-003","Cheddar","Proteínas","kg",5,true],
+      ["BRK-004","Salsa burger","Salsas","l",3,true],
+      ["BRK-005","Papas congeladas","Papas","kg",20,true],
+      ["BRK-006","Bacon","Proteínas","kg",4,true],
     ],
     "TrentoCafe": [
-      ["TRE-001","Café molido","Café","kg",3,true],
-      ["TRE-002","Café en grano","Café","kg",2,true],
-      ["TRE-003","Croissant","Pastelería","u",20,true],
-      ["TRE-004","Medialunas","Pastelería","u",30,true],
-      ["TRE-005","Leche","Bebidas","l",10,true],
+      ["TRE-001","Café grano","Café","kg",5,true],
+      ["TRE-002","Medialunas","Pastelería","u",30,true],
+      ["TRE-003","Leche entera","Bebidas","l",10,true],
+      ["TRE-004","Vasos descartables","Descartables","u",200,true],
+      ["TRE-005","Tostadas","Pastelería","u",40,true],
     ],
     "Eventos": [
-      ["EVE-001","Platos descartables","Vajilla","u",500,true],
-      ["EVE-002","Vasos plásticos","Vajilla","u",1000,true],
-      ["EVE-003","Agua mineral","Bebidas","u",50,true],
-      ["EVE-004","Servilletas","Insumos","u",1000,true],
+      ["EVT-001","Platos llanos","Vajilla","u",120,true],
+      ["EVT-002","Copas vino","Vajilla","u",80,true],
+      ["EVT-003","Manteles","Insumos","u",30,true],
+      ["EVT-004","Servilletas tela","Insumos","u",100,true],
     ],
     "Shopping": [
-      ["SHP-001","Detergente","Limpieza","l",5,true],
-      ["SHP-002","Desinfectante","Limpieza","l",3,true],
-      ["SHP-003","Escoba","Mantenimiento","u",10,true],
-      ["SHP-004","Pala","Mantenimiento","u",5,true],
-    ]
+      ["SHP-001","Lavandina 5L","Limpieza","u",10,true],
+      ["SHP-002","Bolsas residuo","Limpieza","u",100,true],
+      ["SHP-003","Tubos LED","Mantenimiento","u",10,true],
+      ["SHP-004","Desodorante amb.","Limpieza","u",15,true],
+    ],
   };
   
   Object.entries(productSets).forEach(([sheetName, products]) => {
     const sheet = ss.getSheetByName(sheetName);
-    if (sheet) {
+    if (sheet && products.length > 0) {
       sheet.getRange(4, 1, products.length, 6).setValues(products);
     }
   });
   
-  SpreadsheetApp.getUi().alert("✅ Datos demo cargados exitosamente.");
+  // Aplicar formato condicional de activo
+  Object.values(LOCALES).forEach(sheetName => {
+    applyConditionalFormatting(ss.getSheetByName(sheetName));
+  });
+  
+  SpreadsheetApp.getUi().alert("✅ Datos demo cargados.\n\n• 6 locales con productos\n• Responsables y categorías configurados\n• Dashboard listo\n\nYa podés hacer el Deploy de la Web App.");
 }
 
 // ============================================================
-// GENERAR SKU AUTOMÁTICO
+// FORMATO CONDICIONAL
 // ============================================================
-function generateNextSKU(localId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const configSheet = ss.getSheetByName(CONFIG_SHEET);
+function applyConditionalFormatting(sheet) {
+  if (!sheet) return;
   
-  const prefix = SKU_PREFIXES[localId] || "SKU";
+  // Activo TRUE = verde, FALSE = rojo (columna F)
+  const activeRange = sheet.getRange("F4:F100");
   
-  // Buscar la fila del local en la sección de próximos SKU (columnas G:H)
-  const skuData = configSheet.getRange("G5:H20").getValues();
-  let nextNum = 1;
+  const ruleTrue = SpreadsheetApp.newConditionalFormatRule()
+    .whenTextEqualTo("TRUE")
+    .setBackground("#d1fae5").setFontColor("#065f46")
+    .setRanges([activeRange]).build();
   
-  for (let i = 0; i < skuData.length; i++) {
-    if (String(skuData[i][0]) === String(localId)) {
-      nextNum = Number(skuData[i][1]) || 1;
-      // Incrementar y guardar
-      configSheet.getRange(5 + i, 8).setValue(nextNum + 1);
-      break;
-    }
+  const ruleFalse = SpreadsheetApp.newConditionalFormatRule()
+    .whenTextEqualTo("FALSE")
+    .setBackground("#fee2e2").setFontColor("#991b1b")
+    .setRanges([activeRange]).build();
+  
+  // Stock bajo mínimo (columna M roja si es número)
+  const stockRange = sheet.getRange("M4:M500");
+  
+  const rules = sheet.getConditionalFormatRules();
+  rules.push(ruleTrue, ruleFalse);
+  sheet.setConditionalFormatRules(rules);
+}
+
+// ============================================================
+// 🔔 NOTIFICACIONES
+// ============================================================
+
+function sendTelegramNotification(message) {
+  if (!NOTIFY_TELEGRAM_ON || TELEGRAM_BOT_TOKEN === "PEGAR_TU_BOT_TOKEN") return;
+  
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const payload = {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    };
+    
+    UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    });
+  } catch(e) {
+    Logger.log("Error Telegram: " + e.toString());
   }
+}
+
+function sendEmailNotification(subject, htmlBody) {
+  if (!NOTIFY_EMAIL_ON || !NOTIFY_EMAILS) return;
   
-  return prefix + "-" + String(nextNum).padStart(3, "0");
+  try {
+    const emails = NOTIFY_EMAILS.split(",").map(e => e.trim());
+    emails.forEach(email => {
+      MailApp.sendEmail({
+        to: email,
+        subject: subject,
+        htmlBody: htmlBody,
+      });
+    });
+  } catch(e) {
+    Logger.log("Error Email: " + e.toString());
+  }
+}
+
+function notifyNewStock(localId, entry, product) {
+  const localName = LOCAL_NAMES[localId] || localId;
+  const isLow = product && entry.stock < product.minimo;
+  
+  // Si solo queremos críticos y no es bajo mínimo, no notificar
+  if (NOTIFY_ONLY_CRITICAL && !isLow) return;
+  
+  const statusIcon = isLow ? "🔴" : "🟢";
+  const statusText = isLow ? "⚠️ BAJO MÍNIMO" : "✅ OK";
+  const minText = product ? `Mín: ${product.minimo} ${product.unidad}` : "";
+  
+  // ── Telegram ──
+  const tgMsg = [
+    `${statusIcon} <b>NUEVO STOCK — ${localName}</b>`,
+    ``,
+    `📦 <b>${entry.producto}</b> (${entry.sku})`,
+    `📊 Stock: <b>${entry.stock}</b> ${product ? product.unidad : ""}`,
+    minText ? `📉 ${minText}` : "",
+    `👤 ${entry.usuario}`,
+    `🕐 ${entry.fecha} ${entry.hora}`,
+    entry.nota ? `📝 ${entry.nota}` : "",
+    ``,
+    `${statusText}`,
+  ].filter(l => l !== "").join("\n");
+  
+  sendTelegramNotification(tgMsg);
+  
+  // ── Email ──
+  const emailSubject = `${isLow ? "⚠️" : "📦"} Stock ${localName}: ${entry.producto} = ${entry.stock}`;
+  
+  const emailHtml = `
+    <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#0f172a;border-radius:12px;overflow:hidden;">
+      <div style="background:${isLow ? '#dc2626' : '#059669'};padding:16px 20px;text-align:center;">
+        <h2 style="color:#fff;margin:0;font-size:18px;">${statusIcon} REGISTRO DE STOCK</h2>
+        <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px;">${localName} — Control Stock PRO</p>
+      </div>
+      <div style="padding:20px;color:#e2e8f0;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px 0;color:#94a3b8;font-size:12px;">PRODUCTO</td><td style="padding:8px 0;font-weight:bold;font-size:15px;">${entry.producto}</td></tr>
+          <tr><td style="padding:8px 0;color:#94a3b8;font-size:12px;">SKU</td><td style="padding:8px 0;">${entry.sku}</td></tr>
+          <tr><td style="padding:8px 0;color:#94a3b8;font-size:12px;">STOCK</td><td style="padding:8px 0;font-weight:bold;font-size:18px;color:${isLow ? '#ef4444' : '#10b981'};">${entry.stock} ${product ? product.unidad : ""}</td></tr>
+          ${product ? `<tr><td style="padding:8px 0;color:#94a3b8;font-size:12px;">MÍNIMO</td><td style="padding:8px 0;">${product.minimo} ${product.unidad}</td></tr>` : ""}
+          <tr><td style="padding:8px 0;color:#94a3b8;font-size:12px;">RESPONSABLE</td><td style="padding:8px 0;">${entry.usuario}</td></tr>
+          <tr><td style="padding:8px 0;color:#94a3b8;font-size:12px;">FECHA/HORA</td><td style="padding:8px 0;">${entry.fecha} ${entry.hora}</td></tr>
+          ${entry.nota ? `<tr><td style="padding:8px 0;color:#94a3b8;font-size:12px;">NOTA</td><td style="padding:8px 0;color:#f59e0b;">${entry.nota}</td></tr>` : ""}
+        </table>
+        ${isLow ? `<div style="margin-top:16px;padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;text-align:center;color:#ef4444;font-weight:bold;">⚠️ STOCK BAJO MÍNIMO — REPONER</div>` : ""}
+      </div>
+      <div style="background:#0a0f1c;padding:12px;text-align:center;color:#374151;font-size:11px;">
+        Docks del Puerto • Tigre — Control Stock PRO
+      </div>
+    </div>
+  `;
+  
+  sendEmailNotification(emailSubject, emailHtml);
+}
+
+// ============================================================
+// ACTUALIZAR DASHBOARD
+// ============================================================
+function updateDashboard(localId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const dash = ss.getSheetByName(DASHBOARD_SHEET);
+    if (!dash) return;
+    
+    const localIds = Object.keys(LOCALES);
+    const idx = localIds.indexOf(localId);
+    if (idx === -1) return;
+    
+    const row = 7 + idx;
+    
+    // Calcular bajo mínimo
+    const stats = getStats(localId);
+    dash.getRange(row, 4).setValue(stats.belowMinimum || 0);
+    
+    // Estado
+    const status = (stats.belowMinimum > 0) ? "⚠️ ALERTA" : "✅ OK";
+    dash.getRange(row, 6).setValue(status);
+    
+    if (stats.belowMinimum > 0) {
+      dash.getRange(row, 4).setFontColor(COLORS.danger).setFontWeight("bold");
+      dash.getRange(row, 6).setFontColor(COLORS.danger).setFontWeight("bold");
+    } else {
+      dash.getRange(row, 4).setFontColor(COLORS.success).setFontWeight("bold");
+      dash.getRange(row, 6).setFontColor(COLORS.success).setFontWeight("bold");
+    }
+  } catch(e) {
+    Logger.log("Dashboard update error: " + e);
+  }
 }
 
 // ============================================================
@@ -517,7 +635,6 @@ function handleRequest(e) {
       case "removeConfig": result = removeConfigItem(params.localId, params.tipo, params.valor); break;
       case "removeProduct": result = removeProduct(params.localId, params.sku); break;
       case "getAllData": result = getAllData(params.localId); break;
-      case "generateSKU": result = { sku: generateNextSKU(params.localId) }; break;
       default: result = { error: "Acción no válida: " + action };
     }
     
@@ -562,21 +679,17 @@ function getConfig(localId) {
   const sheet = ss.getSheetByName(CONFIG_SHEET);
   if (!sheet) return { responsables: [], categorias: [] };
   
-  // Responsables (columnas A:B)
-  const respData = sheet.getRange("A5:B50").getValues();
-  const responsables = [];
-  respData.forEach(row => {
-    if (String(row[0]) === String(localId) && row[1]) {
-      responsables.push(String(row[1]));
-    }
-  });
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 3) return { responsables: [], categorias: [] };
   
-  // Categorías (columnas D:E)
-  const catData = sheet.getRange("D5:E50").getValues();
-  const categorias = [];
-  catData.forEach(row => {
-    if (String(row[0]) === String(localId) && row[1]) {
-      categorias.push(String(row[1]));
+  const data = sheet.getRange(3, 1, lastRow - 2, 3).getValues();
+  const responsables = [], categorias = [];
+  
+  data.forEach(row => {
+    const lid = String(row[0]), tipo = String(row[1]), valor = String(row[2]);
+    if ((lid === localId || lid === "global") && valor) {
+      if (tipo === "responsable") responsables.push(valor);
+      if (tipo === "categoria") categorias.push(valor);
     }
   });
   
@@ -658,6 +771,7 @@ function saveStockEntry(localId, entry) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   
+  // Encontrar siguiente fila vacía en columna H (desde fila 4)
   const lastRow = Math.max(sheet.getLastRow(), 3);
   const colH = sheet.getRange("H4:H" + (lastRow + 5)).getValues();
   let nextRow = 4;
@@ -673,22 +787,26 @@ function saveStockEntry(localId, entry) {
   const row = [fecha, hora, entry.usuario || "", entry.sku || "", entry.producto || "", Number(entry.stock) || 0, entry.nota || ""];
   sheet.getRange(nextRow, 8, 1, 7).setValues([row]);
   
+  // Formato de la fila nueva
   const bg = (nextRow % 2 === 0) ? COLORS.rowEven : COLORS.rowOdd;
   sheet.getRange(nextRow, 8, 1, 7).setBackground(bg).setFontSize(10)
     .setBorder(false, false, true, false, false, false, COLORS.borderColor, SpreadsheetApp.BorderStyle.DOTTED);
   sheet.getRange(nextRow, 13).setHorizontalAlignment("center").setFontWeight("bold");
   
+  // Color stock si bajo mínimo
   const prodResult = getProducts(localId);
   const product = (prodResult.products || []).find(p => p.sku === entry.sku);
   if (product && Number(entry.stock) < product.minimo) {
     sheet.getRange(nextRow, 13).setFontColor(COLORS.danger).setBackground("#fee2e2");
   } else {
-    sheet.getRange(nextRow, 13).setFontColor(COLORS.success);
+    sheet.getRange(nextRow, 13).setFontColor(COLORS.successDark);
   }
   
+  // 🔔 Notificaciones
   const fullEntry = { fecha, hora, ...entry, stock: Number(entry.stock) };
   notifyNewStock(localId, fullEntry, product);
   
+  // 📊 Actualizar dashboard
   updateDashboard(localId);
   
   return { ok: true, entry: fullEntry };
@@ -708,15 +826,12 @@ function addProduct(localId, product) {
     nextRow = i + 5;
   }
   
-  // Si no hay SKU, generar automáticamente
-  const sku = product.sku || generateNextSKU(localId);
-  
-  sheet.getRange(nextRow, 1, 1, 6).setValues([[sku, product.producto || "", product.categoria || "", product.unidad || "u", Number(product.minimo) || 0, true]]);
+  sheet.getRange(nextRow, 1, 1, 6).setValues([[product.sku || "", product.producto || "", product.categoria || "", product.unidad || "u", Number(product.minimo) || 0, true]]);
   
   const bg = (nextRow % 2 === 0) ? COLORS.rowEven : COLORS.rowOdd;
   sheet.getRange(nextRow, 1, 1, 6).setBackground(bg).setFontSize(10);
   
-  return { ok: true, sku };
+  return { ok: true };
 }
 
 function toggleProduct(localId, sku, newActive) {
@@ -741,40 +856,23 @@ function toggleProduct(localId, sku, newActive) {
 function addConfigItem(localId, tipo, valor) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG_SHEET);
-  
-  if (tipo === "responsable") {
-    const nextRow = sheet.getLastRow() + 1;
-    sheet.getRange(nextRow, 1, 1, 2).setValues([[localId, valor]]);
-  } else if (tipo === "categoria") {
-    const nextRow = sheet.getLastRow() + 1;
-    sheet.getRange(nextRow, 4, 1, 2).setValues([[localId, valor]]);
-  }
-  
+  const nextRow = sheet.getLastRow() + 1;
+  sheet.getRange(nextRow, 1, 1, 3).setValues([[localId, tipo, valor]]);
   return { ok: true };
 }
 
 function removeConfigItem(localId, tipo, valor) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG_SHEET);
-  
-  if (tipo === "responsable") {
-    const data = sheet.getRange("A5:B50").getValues();
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][0]) === String(localId) && String(data[i][1]) === String(valor)) {
-        sheet.deleteRow(i + 5);
-        return { ok: true };
-      }
-    }
-  } else if (tipo === "categoria") {
-    const data = sheet.getRange("D5:E50").getValues();
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][0]) === String(localId) && String(data[i][1]) === String(valor)) {
-        sheet.deleteRow(i + 5);
-        return { ok: true };
-      }
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 3) return { ok: true };
+  const data = sheet.getRange(3, 1, lastRow - 2, 3).getValues();
+  for (let i = data.length - 1; i >= 0; i--) {
+    if (String(data[i][0]) === String(localId) && String(data[i][1]) === String(tipo) && String(data[i][2]) === String(valor)) {
+      sheet.deleteRow(i + 3);
+      return { ok: true };
     }
   }
-  
   return { ok: true };
 }
 
@@ -790,64 +888,4 @@ function removeProduct(localId, sku) {
     if (String(skus[i][0]) === String(sku)) { sheet.deleteRow(i + 4); return { ok: true }; }
   }
   return { error: "No encontrado" };
-}
-
-// ============================================================
-// NOTIFICACIONES (mantener igual)
-// ============================================================
-function notifyNewStock(localId, entry, product) {
-  if (!NOTIFY_EMAIL_ON && !NOTIFY_TELEGRAM_ON) return;
-  
-  const localName = LOCAL_NAMES[localId] || localId;
-  const isCritical = product && entry.stock < product.minimo;
-  
-  if (NOTIFY_ONLY_CRITICAL && !isCritical) return;
-  
-  if (NOTIFY_TELEGRAM_ON) {
-    const msg = `📦 ${localName}\n${entry.producto} (${entry.sku})\n📊 Stock: ${entry.stock} ${product?.unidad || 'u'}\n⚠️ Mín: ${product?.minimo || 'N/A'}\n👤 ${entry.usuario}`;
-    sendTelegram(msg);
-  }
-  
-  if (NOTIFY_EMAIL_ON) {
-    const subject = `[${localName}] Stock: ${entry.producto}`;
-    const htmlBody = `<h2>${localName}</h2><p><strong>${entry.producto}</strong> (${entry.sku})</p><p>Stock: <strong>${entry.stock} ${product?.unidad || 'u'}</strong></p><p>Mínimo: ${product?.minimo || 'N/A'}</p><p>Responsable: ${entry.usuario}</p>`;
-    GmailApp.sendEmail(NOTIFY_EMAILS, subject, "", { htmlBody });
-  }
-}
-
-function sendTelegram(message) {
-  try {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const payload = { chat_id: TELEGRAM_CHAT_ID, text: message };
-    UrlFetchApp.fetch(url, { method: "post", payload: JSON.stringify(payload), contentType: "application/json" });
-  } catch(e) {
-    Logger.log("Telegram error: " + e);
-  }
-}
-
-function updateDashboard(localId) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const dash = ss.getSheetByName(DASHBOARD_SHEET);
-    if (!dash) return;
-    
-    const localIds = Object.keys(LOCALES);
-    const idx = localIds.indexOf(localId);
-    if (idx === -1) return;
-    
-    const row = 7 + idx;
-    const stats = getStats(localId);
-    
-    dash.getRange(row, 4).setValue(stats.belowMinimum || 0);
-    
-    if (stats.belowMinimum > 0) {
-      dash.getRange(row, 4).setFontColor(COLORS.danger).setFontWeight("bold");
-      dash.getRange(row, 6).setFontColor(COLORS.danger).setFontWeight("bold");
-    } else {
-      dash.getRange(row, 4).setFontColor(COLORS.success).setFontWeight("bold");
-      dash.getRange(row, 6).setFontColor(COLORS.success).setFontWeight("bold");
-    }
-  } catch(e) {
-    Logger.log("Dashboard update error: " + e);
-  }
 }
