@@ -590,11 +590,21 @@ const state = {
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadGlobalConfig();
   initLocalGrid();
   document.getElementById("mainContent").classList.add("hidden");
   document.getElementById("tabsBar").classList.add("hidden");
 });
+
+async function loadGlobalConfig() {
+  try {
+    const config = await apiCall({ action: "getConfig" });
+    state.allConfig = config;
+  } catch (err) {
+    console.error("Error cargando configuración global:", err);
+  }
+}
 
 // ============================================================
 // API CALLS
@@ -648,17 +658,18 @@ async function loadAllData(localId) {
   state.loading = true;
   renderLoading();
   try {
-    const config = await apiCall({ action: "getConfig" });
-    state.responsables = config.responsables[localId] || [];
-    state.categorias = config.categorias[localId] || [];
-    state.products = config.productos[localId] || [];
+    if (state.allConfig) {
+      state.responsables = state.allConfig.responsables[localId] || [];
+      state.categorias = state.allConfig.categorias[localId] || [];
+      state.products = state.allConfig.productos[localId] || [];
+    } else {
+      const config = await apiCall({ action: "getConfig" });
+      state.responsables = config.responsables[localId] || [];
+      state.categorias = config.categorias[localId] || [];
+      state.products = config.productos[localId] || [];
+    }
     const stockData = await apiCall({ action: "getStock", local: localId });
     state.stock = stockData.data || [];
-    
-    
-    
-    
-    
     state.loading = false;
     renderCurrentTab();
   } catch(err) {
