@@ -585,6 +585,11 @@ const state = {
   categorias: [],
   history: [],
   stats: null,
+  allConfig: null,
+  historyPage: 0,
+  historyPageSize: 50,
+  cacheTimestamp: null,
+  cacheTTL: 3600000
 };
 
 // ============================================================
@@ -599,10 +604,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadGlobalConfig() {
   try {
+    const cached = localStorage.getItem("config_cache");
+    if (cached) {
+      const {value, timestamp, ttl} = JSON.parse(cached);
+      if (Date.now() - timestamp < ttl) {
+        state.allConfig = value;
+        return;
+      }
+    }
     const config = await apiCall({ action: "getConfig" });
     state.allConfig = config;
+    localStorage.setItem("config_cache", JSON.stringify({value: config, timestamp: Date.now(), ttl: 3600000}));
   } catch (err) {
-    console.error("Error cargando configuración global:", err);
+    console.error("Error cargando configuración:", err);
   }
 }
 
