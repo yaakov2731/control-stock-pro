@@ -661,12 +661,12 @@ async function loadAllData(localId) {
     if (state.allConfig) {
       state.responsables = (state.allConfig.responsables && state.allConfig.responsables[localId]) || [];
       state.categorias = (state.allConfig.categorias && state.allConfig.categorias[localId]) || [];
-      state.products = state.allConfig.productos || [];
+      state.products = Array.isArray(state.allConfig.productos) ? state.allConfig.productos : [];
     } else {
       const config = await apiCall({ action: "getConfig", localId: localId });
       state.responsables = (config.responsables && config.responsables[localId]) || [];
       state.categorias = (config.categorias && config.categorias[localId]) || [];
-      state.products = config.productos || [];
+      state.products = Array.isArray(config.productos) ? config.productos : [];
     }
     const stockData = await apiCall({ action: "getStock", local: localId });
     state.stock = stockData.data || [];
