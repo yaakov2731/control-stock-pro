@@ -599,7 +599,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadGlobalConfig() {
   try {
-    const config = await apiCall({ action: "getConfig" });
+    const config = await apiCall({ action: "getConfig", localId: localId });
     state.allConfig = config;
   } catch (err) {
     console.error("Error cargando configuración global:", err);
@@ -659,14 +659,14 @@ async function loadAllData(localId) {
   renderLoading();
   try {
     if (state.allConfig) {
-      state.responsables = state.allConfig.responsables[localId] || [];
-      state.categorias = state.allConfig.categorias[localId] || [];
-      state.products = state.allConfig.productos[localId] || [];
+      state.responsables = state.allConfig.responsables || [];
+      state.categorias = state.allConfig.categorias || [];
+      state.products = state.allConfig.productos || [];
     } else {
-      const config = await apiCall({ action: "getConfig" });
-      state.responsables = config.responsables[localId] || [];
-      state.categorias = config.categorias[localId] || [];
-      state.products = config.productos[localId] || [];
+      const config = await apiCall({ action: "getConfig", localId: localId });
+      state.responsables = config.responsables || [];
+      state.categorias = config.categorias || [];
+      state.products = config.productos || [];
     }
     const stockData = await apiCall({ action: "getStock", local: localId });
     state.stock = stockData.data || [];
@@ -681,6 +681,7 @@ async function loadAllData(localId) {
 async function loadHistory() {
   try {
     const data = await apiCall({ action: "getHistory", localId: state.localId, limit: "50" });
+        state.history = data.history || [];
     
     renderHistorial();
   } catch(err) {
