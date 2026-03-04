@@ -743,15 +743,28 @@ function renderRegistro() {
 }
 
 function resetForm() {
-  document.getElementById("selResponsable").value = "";
-  document.getElementById("selCategoria").value = "";
-  document.getElementById("selProducto").value = "";
-  document.getElementById("selProducto").disabled = true;
-  document.getElementById("inputStock").value = "";
-  document.getElementById("inputNota").value = "";
-  document.getElementById("unitLabel").textContent = "—";
-  document.getElementById("stockIndicator").classList.add("hidden");
-  document.getElementById("btnSave").disabled = true;
+  const els = {
+    selResponsable: document.getElementById("selResponsable"),
+    selCategoria: document.getElementById("selCategoria"),
+    selProducto: document.getElementById("selProducto"),
+    inputStock: document.getElementById("inputStock"),
+    inputNota: document.getElementById("inputNota"),
+    unitLabel: document.getElementById("unitLabel"),
+    stockIndicator: document.getElementById("stockIndicator"),
+    btnSave: document.getElementById("btnSave")
+  };
+  
+  if (els.selResponsable) els.selResponsable.value = "";
+  if (els.selCategoria) els.selCategoria.value = "";
+  if (els.selProducto) {
+    els.selProducto.value = "";
+    els.selProducto.disabled = true;
+  }
+  if (els.inputStock) els.inputStock.value = "";
+  if (els.inputNota) els.inputNota.value = "";
+  if (els.unitLabel) els.unitLabel.textContent = "—";
+  if (els.stockIndicator) els.stockIndicator.classList.add("hidden");
+  if (els.btnSave) els.btnSave.disabled = true;
 }
 
 function onCategoriaChange() {
