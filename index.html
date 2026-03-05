@@ -561,7 +561,7 @@ select option { background: #0f172a; color: #e2e8f0; }
 // ============================================================
 // CONFIG
 // ============================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzp5AZUeCYNxA6-bEpM3zx4K_JHh_wkxdJHpw4ukvZXkEysgPBYM1qQ069lr6vQdSBh/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIDNzmXvJlfkM3Kxq4Y1eJmeRZ8e6XXZyX80S1eGnfythaUkRoB0Tam7oD6_ndlTFj/exec";
 
 const LOCALES = [
   { id: "umo", name: "Umo Grill", icon: "🔥" },
@@ -661,12 +661,12 @@ async function loadAllData(localId) {
     if (state.allConfig) {
       state.responsables = (state.allConfig.responsables && state.allConfig.responsables[localId]) || [];
       state.categorias = (state.allConfig.categorias && state.allConfig.categorias[localId]) || [];
-      state.products = Array.isArray(state.allConfig.productos) ? state.allConfig.productos : [];
+      state.products = Array.isArray((state.allConfig.productos && state.allConfig.productos[localId]) || []) ? (state.allConfig.productos && state.allConfig.productos[localId]) || [] : [];
     } else {
       const config = await apiCall({ action: "getConfig", localId: localId });
       state.responsables = (config.responsables && config.responsables[localId]) || [];
       state.categorias = (config.categorias && config.categorias[localId]) || [];
-      state.products = Array.isArray(config.productos) ? config.productos : [];
+      state.products = (config.productos && config.productos[localId]) || [];
     }
     const stockData = await apiCall({ action: "getStock", local: localId });
     state.stock = stockData.data || [];
@@ -776,10 +776,10 @@ function onCategoriaChange() {
     sel.disabled = true;
     sel.innerHTML = '<option value="">Primero elegí categoría...</option>';
   } else {
-    const filtered = state.products.filter(p => p.categoria === cat && p.activo);
+    const filtered = state.products.filter(p => p.categoria === cat && true);
     sel.disabled = false;
     sel.innerHTML = '<option value="">Seleccionar...</option>' +
-      filtered.map(p => `<option value="${p.sku}">${p.producto}</option>`).join("");
+      filtered.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join("");
   }
   
   document.getElementById("unitLabel").textContent = "—";
@@ -789,7 +789,7 @@ function onCategoriaChange() {
 
 function onProductoChange() {
   const sku = document.getElementById("selProducto").value;
-  const prod = state.products.find(p => p.sku === sku);
+  const prod = state.products.find(p => p.nombre === sku);
   
   if (prod) {
     document.getElementById("unitLabel").textContent = prod.unidad;
@@ -803,7 +803,7 @@ function onProductoChange() {
 function onStockInput() {
   const sku = document.getElementById("selProducto").value;
   const stock = parseFloat(document.getElementById("inputStock").value) || 0;
-  const prod = state.products.find(p => p.sku === sku);
+  const prod = state.products.find(p => p.nombre === sku);
   
   if (prod) {
     const indicator = document.getElementById("stockIndicator");
@@ -836,11 +836,11 @@ async function handleSave() {
   const stock = parseFloat(document.getElementById("inputStock").value);
   const nota = document.getElementById("inputNota").value;
   
-  const prod = state.products.find(p => p.sku === sku);
+  const prod = state.products.find(p => p.nombre === sku);
   
   try {
     const result = await apiCall({
-      action: "saveStock",
+      action: "agregarRegistro", local: state.localId,
       localId: state.localId,
       entry: JSON.stringify({
         usuario: resp,
@@ -1000,13 +1000,13 @@ function renderConfig() {
           ${state.products.length} productos registrados
         </div>
         <div style="max-height:300px; overflow-y:auto;">
-          ${state.products.filter(p => p.activo).map(p => `
+          ${state.products.filter(p => true).map(p => `
             <div style="padding:10px; border-bottom:1px solid var(--border); font-size:12px; display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <div style="font-weight:600; color:var(--text);">${p.sku} • ${p.producto}</div>
+                <div style="font-weight:600; color:var(--text);">${p.nombre} • ${p.nombre}</div>
                 <div style="color:var(--text-muted); font-size:11px;">${p.categoria} • Mín: ${p.minimo} ${p.unidad}</div>
               </div>
-              <button class="remove-btn" onclick="removeProduct('${p.sku}')" style="margin:0;">✕</button>
+              <button class="remove-btn" onclick="removeProduct('${p.nombre}')" style="margin:0;">✕</button>
             </div>
           `).join("")}
         </div>
