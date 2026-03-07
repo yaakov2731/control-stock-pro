@@ -529,3 +529,21 @@ function getNextEmptyInColumn(sheet, col, startRow) {
   }
   return startRow + values.length;
 }
+
+// ============================================================
+// TEST — Ejecutar desde el editor para verificar Telegram
+// ============================================================
+function testTelegram() {
+  enviarNotificaciones(
+    "trento",           // localId
+    "Angie",            // responsable
+    "Azúcar x10kg",     // producto
+    10,                 // cantidad
+    "Entrada",          // tipo
+    "TEST desde editor",// nota
+    "trento-almacen-azucar-10-k", // sku
+    10,                 // stockValue
+    5                   // minimo
+  );
+  Logger.log("Telegram enviado OK");
+}
