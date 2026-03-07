@@ -9,28 +9,25 @@
 <title>Control Stock PRO</title>
 <style>
 :root {
-  /* Paleta Google-inspired Professional */
-  --primary: #1e40af;           /* Azul corporativo profundo */
-  --primary-light: #3b82f6;     /* Azul claro */
-  --primary-dark: #1e3a8a;      /* Azul muy oscuro */
-  --secondary: #0f766e;         /* Verde teal profesional */
-  --secondary-light: #14b8a6;   /* Verde teal claro */
-  --accent-red: #dc2626;        /* Rojo para alertas */
-  --accent-yellow: #f59e0b;     /* Amarillo para warnings */
-  --success: #16a34a;           /* Verde para éxito */
+  --primary: #1e40af;
+  --primary-light: #3b82f6;
+  --primary-dark: #1e3a8a;
+  --secondary: #0f766e;
+  --secondary-light: #14b8a6;
+  --accent-red: #dc2626;
+  --accent-yellow: #f59e0b;
+  --success: #16a34a;
   --success-dark: #15803d;
-  --danger: #dc2626;            /* Rojo para peligro */
+  --danger: #dc2626;
   --danger-dark: #b91c1c;
-  --warning: #ea580c;           /* Naranja para warnings */
-  
-  /* Neutrales */
-  --bg-dark: #0f172a;           /* Fondo muy oscuro */
-  --bg-darker: #0a0f1a;         /* Fondo más oscuro aún */
-  --bg-card: #1e293b;           /* Fondo de cards */
-  --bg-input: #0f172a;          /* Fondo de inputs */
-  --text: #f1f5f9;              /* Texto principal */
-  --text-muted: #94a3b8;        /* Texto atenuado */
-  --text-dim: #64748b;          /* Texto muy atenuado */
+  --warning: #ea580c;
+  --bg-dark: #0f172a;
+  --bg-darker: #0a0f1a;
+  --bg-card: #1e293b;
+  --bg-input: #0f172a;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
   --border: rgba(255,255,255,0.08);
   --border-light: rgba(255,255,255,0.12);
 }
@@ -89,7 +86,7 @@ body {
   transition: background 0.3s;
 }
 .status-dot.offline { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-.status-dot.loading { background: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse 1s infinite; }
+.status-dot.syncing { background: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse 1s infinite; }
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
@@ -228,34 +225,39 @@ select option { background: #0f172a; color: #e2e8f0; }
   text-align: center;
 }
 
-/* ===== STOCK INDICATOR ===== */
-.stock-indicator {
-  margin-top: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
+/* ===== TIPO ENTRADA/SALIDA ===== */
+.tipo-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.3s;
-  border: 1px solid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.tipo-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid var(--border-light);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.tipo-btn.active-entrada {
+  background: rgba(22,163,74,0.15);
+  border-color: var(--success);
+  color: var(--success);
+}
+.tipo-btn.active-salida {
+  background: rgba(220,38,38,0.15);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
-.stock-indicator.ok { 
-  background: rgba(22,163,74,0.1); 
-  border-color: rgba(22,163,74,0.3);
-}
-
-.stock-indicator.low { 
-  background: rgba(220,38,38,0.1); 
-  border-color: rgba(220,38,38,0.3);
-}
-
-.stock-indicator .min-label { font-size: 12px; color: var(--text-muted); }
-.stock-indicator .status-label { font-size: 13px; font-weight: 700; }
-.stock-indicator.ok .status-label { color: var(--success); }
-.stock-indicator.low .status-label { color: var(--danger); }
-
-/* ===== SAVE BUTTON — 3D MEJORADO ===== */
+/* ===== SAVE BUTTON ===== */
 .save-btn {
   width: 100%;
   padding: 16px;
@@ -291,9 +293,8 @@ select option { background: #0f172a; color: #e2e8f0; }
   color: #6b7280;
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
 }
-
-.save-btn:disabled:active { transform: none; }
 
 /* ===== TABS ===== */
 .tabs-bar {
@@ -334,31 +335,23 @@ select option { background: #0f172a; color: #e2e8f0; }
   padding: 14px 0;
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
-
 .hist-row1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
-
 .hist-product { font-size: 14px; font-weight: 600; color: #f1f5f9; }
 .hist-stock { font-size: 15px; font-weight: 700; }
-.hist-stock.ok { color: var(--success); }
-.hist-stock.low { color: var(--danger); }
-
+.hist-stock.entrada { color: var(--success); }
+.hist-stock.salida { color: var(--danger); }
 .hist-row2 {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   color: var(--text-muted);
 }
-
 .hist-nota { color: var(--warning); }
-
-.filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
-.filter-row .form-input, .filter-row .form-select { flex: 1; margin-bottom: 0; font-size: 13px; }
-
 .badge {
   font-size: 12px;
   color: var(--text-muted);
@@ -374,7 +367,6 @@ select option { background: #0f172a; color: #e2e8f0; }
   gap: 10px;
   margin-bottom: 16px;
 }
-
 .stat-card {
   background: linear-gradient(135deg, rgba(30,64,175,0.1), rgba(15,118,110,0.1));
   border: 1px solid var(--border);
@@ -382,35 +374,11 @@ select option { background: #0f172a; color: #e2e8f0; }
   padding: 14px;
   text-align: center;
 }
-
 .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
 .stat-value { font-size: 24px; font-weight: 700; color: var(--primary-light); margin-top: 4px; }
 
-.critical-list {
-  background: rgba(220,38,38,0.05);
-  border: 1px solid rgba(220,38,38,0.2);
-  border-radius: 12px;
-  padding: 12px;
-  margin-top: 12px;
-}
-
-.critical-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(220,38,38,0.1);
-  font-size: 13px;
-}
-
-.critical-item:last-child { border-bottom: none; }
-.critical-item .name { color: #f1f5f9; font-weight: 600; }
-.critical-item .deficit { color: var(--danger); font-weight: 700; }
-
 /* ===== CONFIG ===== */
-.config-section {
-  margin-bottom: 20px;
-}
-
+.config-section { margin-bottom: 20px; }
 .config-title {
   font-size: 13px;
   font-weight: 700;
@@ -420,13 +388,7 @@ select option { background: #0f172a; color: #e2e8f0; }
   padding-bottom: 8px;
   border-bottom: 2px solid var(--border);
 }
-
-.config-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
+.config-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .config-item {
   display: inline-flex;
   align-items: center;
@@ -438,7 +400,6 @@ select option { background: #0f172a; color: #e2e8f0; }
   font-size: 12px;
   color: var(--text);
 }
-
 .config-item .remove-btn {
   background: none;
   border: none;
@@ -448,7 +409,6 @@ select option { background: #0f172a; color: #e2e8f0; }
   padding: 0;
   margin-left: 4px;
 }
-
 .add-btn {
   width: 100%;
   padding: 12px;
@@ -462,11 +422,7 @@ select option { background: #0f172a; color: #e2e8f0; }
   transition: all 0.2s;
   margin-top: 8px;
 }
-
-.add-btn:hover {
-  background: rgba(30,64,175,0.05);
-  border-color: var(--primary-light);
-}
+.add-btn:hover { background: rgba(30,64,175,0.05); border-color: var(--primary-light); }
 
 /* ===== UTILITIES ===== */
 .hidden { display: none !important; }
@@ -484,8 +440,10 @@ select option { background: #0f172a; color: #e2e8f0; }
   font-size: 13px;
   z-index: 200;
   animation: slideUp 0.3s ease;
+  max-width: 90vw;
+  text-align: center;
+  white-space: pre-line;
 }
-
 .toast.error { background: var(--danger); }
 .toast.success { background: var(--success); }
 
@@ -493,6 +451,23 @@ select option { background: #0f172a; color: #e2e8f0; }
   from { transform: translateX(-50%) translateY(100px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
+
+/* ===== SYNC BADGE ===== */
+.sync-badge {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: rgba(234,88,12,0.2);
+  color: var(--warning);
+  border: 1px solid rgba(234,88,12,0.3);
+  z-index: 50;
+  display: none;
+}
+.sync-badge.show { display: block; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 360px) {
@@ -507,8 +482,11 @@ select option { background: #0f172a; color: #e2e8f0; }
   <div class="header">
     <h1>CONTROL STOCK</h1>
     <div class="subtitle">PRO</div>
-    <div class="status-dot"></div>
+    <div class="status-dot" id="statusDot"></div>
   </div>
+
+  <!-- SYNC BADGE -->
+  <div class="sync-badge" id="syncBadge">⏳ Sincronizando...</div>
 
   <!-- LOCAL SELECTOR -->
   <div class="section">
@@ -518,27 +496,19 @@ select option { background: #0f172a; color: #e2e8f0; }
 
   <!-- MAIN CONTENT -->
   <div id="mainContent" class="hidden">
-    <!-- TAB: REGISTRO -->
     <div id="tabRegistro" class="tab-content"></div>
-
-    <!-- TAB: HISTORIAL -->
     <div id="tabHistorial" class="tab-content hidden"></div>
-
-    <!-- TAB: STATS -->
     <div id="tabStats" class="tab-content hidden"></div>
-
-    <!-- TAB: CONFIG -->
     <div id="tabConfig" class="tab-content hidden"></div>
   </div>
 
-  <!-- FOOTER NOTE -->
   <div style="text-align:center; padding:20px; font-size:11px; color:var(--text-muted);">
-    Los cambios se guardan automáticamente en Google Sheets
+    Docks del Puerto • Tigre
   </div>
 </div>
 
 <!-- TABS BAR -->
-<div class="tabs-bar" id="tabsBar">
+<div class="tabs-bar" id="tabsBar" class="hidden">
   <button class="tab-btn active" data-tab="registro" onclick="switchTab('registro')">
     <span class="tab-icon">📝</span>
     <span>Registro</span>
@@ -559,63 +529,146 @@ select option { background: #0f172a; color: #e2e8f0; }
 
 <script>
 // ============================================================
-// CONFIG
+// CONFIG — URL del Apps Script (POST)
 // ============================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIDNzmXvJlfkM3Kxq4Y1eJmeRZ8e6XXZyX80S1eGnfythaUkRoB0Tam7oD6_ndlTFj/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxo2rcaXXRYeluMPWPJVatkaiEH_znFdaD878fV8MBwk4XPrI5cvSc83J0qJb-Om6SC/exec";
 
 const LOCALES = [
-  { id: "umo", name: "Umo Grill", icon: "🔥" },
-  { id: "gelato", name: "Puerto Gelato", icon: "🍦" },
-  { id: "brooklyn", name: "Brooklyn", icon: "🍔" },
-  { id: "trento", name: "Trento Cafe", icon: "☕" },
-  { id: "eventos", name: "Eventos", icon: "🎪" },
-  { id: "shopping", name: "Shopping", icon: "🏬" }
+  { id: "umo",      name: "Umo Grill",      icon: "🔥" },
+  { id: "gelato",   name: "Puerto Gelato",   icon: "🍦" },
+  { id: "brooklyn", name: "Brooklyn",        icon: "🍔" },
+  { id: "trento",   name: "Trento Cafe",     icon: "☕" },
+  { id: "eventos",  name: "Eventos",         icon: "🎪" },
+  { id: "shopping", name: "Shopping",        icon: "🏬" }
 ];
 
 // ============================================================
 // STATE
 // ============================================================
 const state = {
-  localId: null,
-  localName: null,
-  activeTab: "registro",
-  loading: false,
-  products: [],
+  localId:      null,
+  localName:    null,
+  activeTab:    "registro",
+  products:     [],
   responsables: [],
-  categorias: [],
-  history: [],
-  stats: null,
+  categorias:   [],
+  tipoSeleccionado: "Entrada",  // "Entrada" | "Salida"
+  configLoaded: false,
 };
+
+// Cola de registros pendientes de envío (optimistic)
+let pendingQueue = [];
+let isSyncing    = false;
 
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadGlobalConfig();
   initLocalGrid();
   document.getElementById("mainContent").classList.add("hidden");
   document.getElementById("tabsBar").classList.add("hidden");
+
+  // Cargar config global en background (no bloquea la UI)
+  loadGlobalConfig();
+
+  // Procesar cola pendiente de sesiones anteriores
+  procesarCola();
 });
 
-async function loadGlobalConfig() {
-  try {
-    const config = await apiCall({ action: "getConfig", localId: "umo" });
-    state.allConfig = config;
-  } catch (err) {
-    console.error("Error cargando configuración global:", err);
-  }
+// ============================================================
+// API — POST con no-cors (optimistic)
+// ============================================================
+function apiPost(data) {
+  return fetch(SCRIPT_URL, {
+    method:  "POST",
+    mode:    "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify(data)
+  });
+}
+
+// API — GET con CORS (para leer datos)
+async function apiGet(params) {
+  const url = new URL(SCRIPT_URL);
+  Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+  const res = await fetch(url.toString(), { method: "GET" });
+  if (!res.ok) throw new Error("Network error " + res.status);
+  return res.json();
 }
 
 // ============================================================
-// API CALLS
+// CARGAR CONFIG PARA UN LOCAL (responsables + categorías + productos)
 // ============================================================
-async function apiCall(params) {
-  const url = new URL(SCRIPT_URL);
-  Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-  
-  const response = await fetch(url, { method: "GET" });
-  if (!response.ok) throw new Error("Network error");
-  return await response.json();
+async function loadGlobalConfig() {
+  if (!state.localId) return;
+  await loadConfigForLocal(state.localId);
+}
+
+async function loadConfigForLocal(localId) {
+  // 1. Intentar caché local (5 min)
+  const cacheKey = "csp_config_" + localId;
+  const cached   = localStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      if (Date.now() - parsed._ts < 5 * 60 * 1000) {
+        applyConfigForLocal(localId, parsed);
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // 2. Cargar desde API
+  try {
+    actualizarStatusDot("syncing");
+    // Cargar config (responsables + categorías) y productos en paralelo
+    const [configData, prodData] = await Promise.all([
+      apiGet({ action: "getConfig", localId: localId }),
+      apiGet({ action: "getProducts", localId: localId })
+    ]);
+
+    const merged = {
+      responsables: configData.responsables || {},
+      categorias:   configData.categorias   || {},
+      productos:    {},
+      _ts:          Date.now()
+    };
+
+    // Los productos vienen directamente de la pestaña del local
+    if (prodData.products && prodData.products.length > 0) {
+      merged.productos[localId] = prodData.products.map(p => ({
+        sku:       p.sku,
+        nombre:    p.nombre || p.producto,
+        categoria: p.categoria,
+        unidad:    p.unidad
+      }));
+    }
+
+    localStorage.setItem(cacheKey, JSON.stringify(merged));
+    applyConfigForLocal(localId, merged);
+    actualizarStatusDot("online");
+  } catch(err) {
+    console.warn("Config no disponible:", err.message);
+    actualizarStatusDot("offline");
+  }
+}
+
+function applyConfig(config) {
+  state.allConfig    = config;
+  state.configLoaded = true;
+  if (state.localId) applyConfigForLocal(state.localId, config);
+}
+
+function applyConfigForLocal(localId, config) {
+  if (!config) return;
+  state.allConfig    = config;
+  state.configLoaded = true;
+  state.responsables = (config.responsables && config.responsables[localId]) || [];
+  state.categorias   = (config.categorias   && config.categorias[localId])   || [];
+  state.products     = (config.productos    && config.productos[localId])    || [];
+  // Re-renderizar
+  if (state.activeTab === "registro") renderRegistro();
+  if (state.activeTab === "config")   renderConfig();
 }
 
 // ============================================================
@@ -632,71 +685,29 @@ function initLocalGrid() {
 }
 
 function selectLocal(id, name) {
-  state.localId = id;
-  state.localName = name;
-  state.activeTab = "registro";
-  
+  state.localId          = id;
+  state.localName        = name;
+  state.activeTab        = "registro";
+  state.tipoSeleccionado = "Entrada";
+  state.configLoaded     = false;
+  state.responsables     = [];
+  state.categorias       = [];
+  state.products         = [];
+
   document.querySelectorAll(".local-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.id === id);
   });
-  
+
   document.getElementById("mainContent").classList.remove("hidden");
   document.getElementById("tabsBar").classList.remove("hidden");
-  
+
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.tab === "registro");
   });
-  
-  resetForm();
-  loadAllData(id);
-}
 
-// ============================================================
-// DATA LOADING
-// ============================================================
-async function loadAllData(localId) {
-  state.loading = true;
-  renderLoading();
-  try {
-    if (state.allConfig) {
-      state.responsables = (state.allConfig.responsables && state.allConfig.responsables[localId]) || [];
-      state.categorias = (state.allConfig.categorias && state.allConfig.categorias[localId]) || [];
-      state.products = Array.isArray((state.allConfig.productos && state.allConfig.productos[localId]) || []) ? (state.allConfig.productos && state.allConfig.productos[localId]) || [] : [];
-    } else {
-      const config = await apiCall({ action: "getConfig", localId: localId });
-      state.responsables = (config.responsables && config.responsables[localId]) || [];
-      state.categorias = (config.categorias && config.categorias[localId]) || [];
-      state.products = (config.productos && config.productos[localId]) || [];
-    }
-    const stockData = await apiCall({ action: "getStock", local: localId });
-    state.stock = stockData.data || [];
-    state.loading = false;
-    renderCurrentTab();
-  } catch(err) {
-    state.loading = false;
-    showToast("Error cargando datos: " + err.message, "error");
-  }
-}
-
-async function loadHistory() {
-  try {
-    const data = await apiCall({ action: "getHistory", localId: state.localId, limit: "50" });
-        state.history = data.history || [];
-    
-    renderHistorial();
-  } catch(err) {
-    console.error(err);
-  }
-}
-
-async function loadStats() {
-  try {
-    const data = await apiCall({ action: "getStats", localId: state.localId });
-    state.stats = data;
-    renderStats();
-  } catch(err) {
-    console.error(err);
-  }
+  // Mostrar form inmediatamente (vacío) y cargar config en background
+  renderRegistro();
+  loadConfigForLocal(id);
 }
 
 // ============================================================
@@ -711,6 +722,14 @@ function renderRegistro() {
         ${state.responsables.map(r => `<option value="${r}">${r}</option>`).join("")}
       </select>
 
+      <label class="form-label">Tipo de Movimiento</label>
+      <div class="tipo-row">
+        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Entrada' ? 'active-entrada' : ''}" 
+                onclick="seleccionarTipo('Entrada')">📥 Entrada</button>
+        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Salida' ? 'active-salida' : ''}" 
+                onclick="seleccionarTipo('Salida')">📤 Salida</button>
+      </div>
+
       <label class="form-label">Categoría</label>
       <select class="form-select" id="selCategoria" onchange="onCategoriaChange()">
         <option value="">Seleccionar...</option>
@@ -718,19 +737,15 @@ function renderRegistro() {
       </select>
 
       <label class="form-label">Insumo / Producto</label>
-      <select class="form-select" id="selProducto" disabled onchange="onProductoChange()">
+      <select class="form-select" id="selProducto" disabled onchange="validateForm()">
         <option value="">Primero elegí categoría...</option>
       </select>
 
-      <label class="form-label">Stock Actual</label>
+      <label class="form-label">Cantidad</label>
       <div class="input-row">
-        <input type="number" class="form-input" id="inputStock" placeholder="0" min="0" step="0.5" style="flex:1;margin-bottom:0" oninput="onStockInput()">
+        <input type="number" class="form-input" id="inputCantidad" placeholder="0" min="0" step="0.5" 
+               style="flex:1;margin-bottom:0" oninput="validateForm()">
         <span class="input-unit" id="unitLabel">—</span>
-      </div>
-
-      <div id="stockIndicator" class="stock-indicator hidden">
-        <span class="min-label" id="minLabel"></span>
-        <span class="status-label" id="statusLabel"></span>
       </div>
 
       <div style="margin-top:14px">
@@ -738,153 +753,240 @@ function renderRegistro() {
         <input type="text" class="form-input" id="inputNota" placeholder="Observación..." style="margin-bottom:0">
       </div>
 
-      <button class="save-btn" id="btnSave" disabled onclick="handleSave()">GUARDAR REGISTRO</button>
+      <button class="save-btn" id="btnSave" disabled onclick="handleSave()">
+        GUARDAR REGISTRO
+      </button>
     </div>
   `;
 }
 
-function resetForm() {
-  const els = {
-    selResponsable: document.getElementById("selResponsable"),
-    selCategoria: document.getElementById("selCategoria"),
-    selProducto: document.getElementById("selProducto"),
-    inputStock: document.getElementById("inputStock"),
-    inputNota: document.getElementById("inputNota"),
-    unitLabel: document.getElementById("unitLabel"),
-    stockIndicator: document.getElementById("stockIndicator"),
-    btnSave: document.getElementById("btnSave")
-  };
-  
-  if (els.selResponsable) els.selResponsable.value = "";
-  if (els.selCategoria) els.selCategoria.value = "";
-  if (els.selProducto) {
-    els.selProducto.value = "";
-    els.selProducto.disabled = true;
-  }
-  if (els.inputStock) els.inputStock.value = "";
-  if (els.inputNota) els.inputNota.value = "";
-  if (els.unitLabel) els.unitLabel.textContent = "—";
-  if (els.stockIndicator) els.stockIndicator.classList.add("hidden");
-  if (els.btnSave) els.btnSave.disabled = true;
+function seleccionarTipo(tipo) {
+  state.tipoSeleccionado = tipo;
+  // Actualizar botones sin re-renderizar todo
+  document.querySelectorAll(".tipo-btn").forEach(b => {
+    b.className = "tipo-btn";
+    if (b.textContent.includes("Entrada") && tipo === "Entrada") b.classList.add("active-entrada");
+    if (b.textContent.includes("Salida")  && tipo === "Salida")  b.classList.add("active-salida");
+  });
 }
 
 function onCategoriaChange() {
   const cat = document.getElementById("selCategoria").value;
   const sel = document.getElementById("selProducto");
-  
+
   if (!cat) {
     sel.disabled = true;
     sel.innerHTML = '<option value="">Primero elegí categoría...</option>';
   } else {
-    const filtered = state.products.filter(p => p.categoria === cat && true);
+    const filtered = state.products.filter(p => p.categoria === cat);
     sel.disabled = false;
     sel.innerHTML = '<option value="">Seleccionar...</option>' +
       filtered.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join("");
   }
-  
+
   document.getElementById("unitLabel").textContent = "—";
-  document.getElementById("stockIndicator").classList.add("hidden");
-  validateForm();
-}
-
-function onProductoChange() {
-  const sku = document.getElementById("selProducto").value;
-  const prod = state.products.find(p => p.nombre === sku);
-  
-  if (prod) {
-    document.getElementById("unitLabel").textContent = prod.unidad;
-  } else {
-    document.getElementById("unitLabel").textContent = "—";
-  }
-  
-  validateForm();
-}
-
-function onStockInput() {
-  const sku = document.getElementById("selProducto").value;
-  const stock = parseFloat(document.getElementById("inputStock").value) || 0;
-  const prod = state.products.find(p => p.nombre === sku);
-  
-  if (prod) {
-    const indicator = document.getElementById("stockIndicator");
-    const isLow = stock < prod.minimo;
-    
-    indicator.classList.remove("hidden");
-    indicator.classList.toggle("low", isLow);
-    indicator.classList.toggle("ok", !isLow);
-    
-    document.getElementById("minLabel").textContent = `Mín: ${prod.minimo} ${prod.unidad}`;
-    document.getElementById("statusLabel").textContent = isLow ? "⚠ BAJO MÍNIMO" : "✓ OK";
-  }
-  
   validateForm();
 }
 
 function validateForm() {
-  const resp = document.getElementById("selResponsable").value;
-  const cat = document.getElementById("selCategoria").value;
-  const prod = document.getElementById("selProducto").value;
-  const stock = document.getElementById("inputStock").value;
-  
-  const isValid = resp && cat && prod && stock !== "";
-  document.getElementById("btnSave").disabled = !isValid;
+  const resp  = document.getElementById("selResponsable")?.value;
+  const prod  = document.getElementById("selProducto")?.value;
+  const cant  = document.getElementById("inputCantidad")?.value;
+  const isValid = resp && prod && cant && parseFloat(cant) > 0;
+  const btn = document.getElementById("btnSave");
+  if (btn) btn.disabled = !isValid;
 }
 
-async function handleSave() {
-  const resp = document.getElementById("selResponsable").value;
-  const sku = document.getElementById("selProducto").value;
-  const stock = parseFloat(document.getElementById("inputStock").value);
-  const nota = document.getElementById("inputNota").value;
-  
-  const prod = state.products.find(p => p.nombre === sku);
-  
-  try {
-    const result = await apiCall({
-      action: "agregarRegistro", local: state.localId,
-      localId: state.localId,
-      entry: JSON.stringify({
-        usuario: resp,
-        sku: sku,
-        producto: prod.producto,
-        stock: stock,
-        nota: nota
-      })
-    });
-    
-    if (result.error) {
-      showToast("Error: " + result.error, "error");
-    } else {
-      showToast("Registro guardado ✓", "success");
-      resetForm();
-      loadAllData(state.localId);
-    }
-  } catch(err) {
-    showToast("Error al guardar: " + err.message, "error");
+// ============================================================
+// GUARDAR REGISTRO — OPTIMISTA (instantáneo)
+// ============================================================
+function handleSave() {
+  const resp  = document.getElementById("selResponsable").value;
+  const prod  = document.getElementById("selProducto").value;
+  const cant  = parseFloat(document.getElementById("inputCantidad").value) || 0;
+  const nota  = document.getElementById("inputNota").value.trim();
+  const tipo  = state.tipoSeleccionado;
+
+  if (!resp || !prod || cant <= 0) {
+    showToast("Completá todos los campos", "error");
+    return;
   }
+
+  const registro = {
+    action:      "agregarRegistro",
+    local:       state.localId,
+    localName:   state.localName,
+    responsable: resp,
+    producto:    prod,
+    cantidad:    cant,
+    tipo:        tipo,
+    nota:        nota,
+    _ts:         new Date().toISOString()
+  };
+
+  // ── OPTIMISTA: guardar en historial local INMEDIATAMENTE ──
+  guardarEnHistorialLocal(registro);
+
+  // ── Mostrar éxito INMEDIATAMENTE ──
+  const emoji = tipo === "Entrada" ? "📥" : "📤";
+  showToast(`${emoji} ${tipo} registrada!\n${prod} × ${cant}`, "success");
+
+  // ── Limpiar formulario INMEDIATAMENTE ──
+  limpiarFormulario();
+
+  // ── Vibración en móvil ──
+  if (navigator.vibrate) navigator.vibrate(50);
+
+  // ── Encolar envío en background ──
+  encolarEnvio(registro);
+}
+
+function limpiarFormulario() {
+  const campos = ["selResponsable", "selCategoria", "selProducto", "inputCantidad", "inputNota"];
+  campos.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = "";
+    if (id === "selProducto") el.disabled = true;
+  });
+  const unitLabel = document.getElementById("unitLabel");
+  if (unitLabel) unitLabel.textContent = "—";
+  const btn = document.getElementById("btnSave");
+  if (btn) btn.disabled = true;
+}
+
+// ============================================================
+// COLA DE ENVÍO EN BACKGROUND
+// ============================================================
+function encolarEnvio(registro) {
+  pendingQueue.push(registro);
+  try {
+    const cola = JSON.parse(localStorage.getItem("csp_cola") || "[]");
+    cola.push(registro);
+    localStorage.setItem("csp_cola", JSON.stringify(cola.slice(-100)));
+  } catch(e) {}
+
+  actualizarStatusDot("syncing");
+  document.getElementById("syncBadge").classList.add("show");
+  procesarCola();
+}
+
+async function procesarCola() {
+  if (isSyncing) return;
+
+  // Cargar cola persistida si pendingQueue está vacía
+  if (pendingQueue.length === 0) {
+    try {
+      const cola = JSON.parse(localStorage.getItem("csp_cola") || "[]");
+      if (cola.length > 0) pendingQueue = cola;
+    } catch(e) {}
+  }
+
+  if (pendingQueue.length === 0) {
+    actualizarStatusDot("online");
+    document.getElementById("syncBadge").classList.remove("show");
+    return;
+  }
+
+  isSyncing = true;
+  const item = pendingQueue[0];
+
+  try {
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 30000);
+
+    await fetch(SCRIPT_URL, {
+      method:  "POST",
+      mode:    "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(item),
+      signal:  controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    // Éxito: remover de la cola
+    pendingQueue.shift();
+    try {
+      const cola = JSON.parse(localStorage.getItem("csp_cola") || "[]");
+      cola.shift();
+      localStorage.setItem("csp_cola", JSON.stringify(cola));
+    } catch(e) {}
+
+    console.log("✅ Enviado a Sheets:", item.localName, item.producto, item.tipo);
+
+  } catch(err) {
+    console.warn("⚠️ Error enviando (reintentará):", err.message);
+  } finally {
+    isSyncing = false;
+    if (pendingQueue.length > 0) {
+      setTimeout(procesarCola, 2000);
+    } else {
+      actualizarStatusDot("online");
+      document.getElementById("syncBadge").classList.remove("show");
+    }
+  }
+}
+
+function actualizarStatusDot(estado) {
+  const dot = document.getElementById("statusDot");
+  if (!dot) return;
+  dot.className = "status-dot";
+  if (estado !== "online") dot.classList.add(estado);
+}
+
+// ============================================================
+// HISTORIAL LOCAL
+// ============================================================
+function guardarEnHistorialLocal(registro) {
+  try {
+    const key  = "csp_hist_" + registro.local;
+    const hist = JSON.parse(localStorage.getItem(key) || "[]");
+    hist.unshift(registro);
+    localStorage.setItem(key, JSON.stringify(hist.slice(0, 200)));
+  } catch(e) {}
+}
+
+function obtenerHistorialLocal(localId) {
+  try {
+    return JSON.parse(localStorage.getItem("csp_hist_" + localId) || "[]");
+  } catch(e) { return []; }
 }
 
 // ============================================================
 // RENDER: HISTORIAL
 // ============================================================
 function renderHistorial() {
+  const hist = obtenerHistorialLocal(state.localId);
+
   const html = `
     <div class="card">
-      <h3 style="margin-bottom:14px; font-size:14px;">Historial de Stock</h3>
-      <div style="color:var(--text-muted); font-size:12px; margin-bottom:14px;">${state.history.length} registros</div>
-      ${state.history.length === 0 ? '<div style="text-align:center; color:var(--text-muted); padding:20px;">Sin registros</div>' : ''}
-      ${state.history.map(h => `
-        <div class="hist-item">
-          <div class="hist-row1">
-            <span class="hist-product">${h.producto}</span>
-            <span class="hist-stock ${h.stock >= 0 ? 'ok' : 'low'}">${h.stock} ${h.unidad || 'u'}</span>
-          </div>
-          <div class="hist-row2">
-            <span>${h.fecha} ${h.hora}</span>
-            <span>${h.usuario}</span>
-          </div>
-          ${h.nota ? `<div class="hist-nota" style="margin-top:4px; font-size:11px;">📝 ${h.nota}</div>` : ''}
-        </div>
-      `).join("")}
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="font-size:14px;">Historial — ${state.localName}</h3>
+        <span class="badge">${hist.length} registros</span>
+      </div>
+      ${hist.length === 0 
+        ? '<div style="text-align:center; color:var(--text-muted); padding:20px;">Sin registros aún</div>' 
+        : hist.slice(0, 50).map(h => {
+            const fecha = h._ts ? new Date(h._ts).toLocaleDateString("es-AR") : "-";
+            const hora  = h._ts ? new Date(h._ts).toLocaleTimeString("es-AR", {hour:"2-digit",minute:"2-digit"}) : "-";
+            const cls   = h.tipo === "Entrada" ? "entrada" : "salida";
+            const emoji = h.tipo === "Entrada" ? "📥" : "📤";
+            return `
+              <div class="hist-item">
+                <div class="hist-row1">
+                  <span class="hist-product">${h.producto}</span>
+                  <span class="hist-stock ${cls}">${emoji} ${h.cantidad}</span>
+                </div>
+                <div class="hist-row2">
+                  <span>${fecha} ${hora}</span>
+                  <span>${h.responsable}</span>
+                </div>
+                ${h.nota ? `<div class="hist-nota" style="margin-top:4px; font-size:11px;">📝 ${h.nota}</div>` : ""}
+              </div>
+            `;
+          }).join("")
+      }
     </div>
   `;
   document.getElementById("tabHistorial").innerHTML = html;
@@ -894,50 +996,36 @@ function renderHistorial() {
 // RENDER: STATS
 // ============================================================
 function renderStats() {
-  if (!state.stats) {
-    document.getElementById("tabStats").innerHTML = '<div class="card"><div class="loading-state">Cargando...</div></div>';
-    return;
-  }
-  
+  const hist = obtenerHistorialLocal(state.localId);
+
+  const entradas = hist.filter(h => h.tipo === "Entrada").reduce((s, h) => s + (h.cantidad || 0), 0);
+  const salidas  = hist.filter(h => h.tipo === "Salida").reduce((s, h) => s + (h.cantidad || 0), 0);
+  const productos = [...new Set(hist.map(h => h.producto))].length;
+
   const html = `
     <div class="card">
       <h3 style="margin-bottom:14px; font-size:14px;">Estadísticas — ${state.localName}</h3>
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-label">Productos Activos</div>
-          <div class="stat-value">${state.stats.totalProducts || 0}</div>
+          <div class="stat-label">Registros</div>
+          <div class="stat-value">${hist.length}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Bajo Mínimo</div>
-          <div class="stat-value" style="color:${state.stats.belowMinimum > 0 ? 'var(--danger)' : 'var(--success)'}">
-            ${state.stats.belowMinimum || 0}
-          </div>
+          <div class="stat-label">Productos</div>
+          <div class="stat-value">${productos}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Entradas</div>
+          <div class="stat-value" style="color:var(--success)">${entradas.toFixed(1)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Salidas</div>
+          <div class="stat-value" style="color:var(--danger)">${salidas.toFixed(1)}</div>
         </div>
       </div>
-      
-      ${state.stats.critical && state.stats.critical.length > 0 ? `
-        <div style="margin-top:14px;">
-          <h4 style="font-size:12px; color:var(--danger); margin-bottom:8px; text-transform:uppercase; font-weight:600;">⚠ Productos Críticos (TOP 10)</h4>
-          <div class="critical-list">
-            ${state.stats.critical.map(c => `
-              <div class="critical-item">
-                <div>
-                  <div class="name">${c.producto}</div>
-                  <div style="font-size:11px; color:var(--text-muted);">${c.sku} • ${c.categoria}</div>
-                </div>
-                <div style="text-align:right;">
-                  <div class="deficit">-${c.deficit} ${c.unidad}</div>
-                  <div style="font-size:11px; color:var(--text-muted);">Stock: ${c.currentStock}</div>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      ` : `
-        <div style="margin-top:14px; padding:20px; text-align:center; background:rgba(22,163,74,0.05); border-radius:12px; color:var(--success); font-weight:600;">
-          ✓ Todo por encima del mínimo
-        </div>
-      `}
+      <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:8px;">
+        Datos del historial local de este dispositivo
+      </p>
     </div>
   `;
   document.getElementById("tabStats").innerHTML = html;
@@ -950,7 +1038,7 @@ function renderConfig() {
   const html = `
     <div class="card">
       <h3 style="margin-bottom:14px; font-size:14px;">Configuración — ${state.localName}</h3>
-      
+
       <!-- RESPONSABLES -->
       <div class="config-section">
         <div class="config-title">👤 Responsables</div>
@@ -962,16 +1050,16 @@ function renderConfig() {
             </span>
           `).join("")}
         </div>
-        <button class="add-btn" onclick="showAddResponsable()">+ Agregar Responsable</button>
-        <div id="addResponsableForm" class="hidden" style="margin-top:10px;">
+        <button class="add-btn" onclick="showAddForm('responsable')">+ Agregar Responsable</button>
+        <div id="formResponsable" class="hidden" style="margin-top:10px;">
           <input type="text" id="inputResponsable" placeholder="Nombre del responsable" class="form-input" style="margin-bottom:8px;">
           <div style="display:flex; gap:8px;">
             <button onclick="addResponsable()" class="save-btn" style="flex:1; padding:10px; margin:0;">Agregar</button>
-            <button onclick="hideAddResponsable()" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
+            <button onclick="hideAddForm('responsable')" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
           </div>
         </div>
       </div>
-      
+
       <!-- CATEGORÍAS -->
       <div class="config-section">
         <div class="config-title">📂 Categorías</div>
@@ -983,16 +1071,16 @@ function renderConfig() {
             </span>
           `).join("")}
         </div>
-        <button class="add-btn" onclick="showAddCategoria()">+ Agregar Categoría</button>
-        <div id="addCategoriaForm" class="hidden" style="margin-top:10px;">
+        <button class="add-btn" onclick="showAddForm('categoria')">+ Agregar Categoría</button>
+        <div id="formCategoria" class="hidden" style="margin-top:10px;">
           <input type="text" id="inputCategoria" placeholder="Nombre de la categoría" class="form-input" style="margin-bottom:8px;">
           <div style="display:flex; gap:8px;">
             <button onclick="addCategoria()" class="save-btn" style="flex:1; padding:10px; margin:0;">Agregar</button>
-            <button onclick="hideAddCategoria()" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
+            <button onclick="hideAddForm('categoria')" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
           </div>
         </div>
       </div>
-      
+
       <!-- PRODUCTOS -->
       <div class="config-section">
         <div class="config-title">📦 Catálogo de Productos</div>
@@ -1000,36 +1088,30 @@ function renderConfig() {
           ${state.products.length} productos registrados
         </div>
         <div style="max-height:300px; overflow-y:auto;">
-          ${state.products.filter(p => true).map(p => `
+          ${state.products.map(p => `
             <div style="padding:10px; border-bottom:1px solid var(--border); font-size:12px; display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <div style="font-weight:600; color:var(--text);">${p.nombre} • ${p.nombre}</div>
-                <div style="color:var(--text-muted); font-size:11px;">${p.categoria} • Mín: ${p.minimo} ${p.unidad}</div>
+                <div style="font-weight:600; color:var(--text);">${p.nombre}</div>
+                <div style="color:var(--text-muted); font-size:11px;">${p.categoria}${p.unidad ? ' • ' + p.unidad : ''}</div>
               </div>
               <button class="remove-btn" onclick="removeProduct('${p.nombre}')" style="margin:0;">✕</button>
             </div>
           `).join("")}
         </div>
-        <button class="add-btn" onclick="showAddProduct()">+ Agregar Producto</button>
-        <div id="addProductForm" class="hidden" style="margin-top:10px; padding:12px; background:rgba(30,64,175,0.05); border-radius:12px;">
+        <button class="add-btn" onclick="showAddForm('producto')">+ Agregar Producto</button>
+        <div id="formProducto" class="hidden" style="margin-top:10px; padding:12px; background:rgba(30,64,175,0.05); border-radius:12px;">
           <label class="form-label">Categoría</label>
           <select class="form-select" id="selCatForProduct" style="margin-bottom:8px;">
             <option value="">Seleccionar...</option>
             ${state.categorias.map(c => `<option value="${c}">${c}</option>`).join("")}
           </select>
-          
           <label class="form-label">Nombre del Producto</label>
           <input type="text" id="inputProductName" placeholder="Ej: Vacío" class="form-input" style="margin-bottom:8px;">
-          
           <label class="form-label">Unidad</label>
           <input type="text" id="inputProductUnit" placeholder="Ej: kg, u, l" class="form-input" style="margin-bottom:8px;">
-          
-          <label class="form-label">Stock Mínimo</label>
-          <input type="number" id="inputProductMin" placeholder="0" min="0" class="form-input" style="margin-bottom:8px;">
-          
           <div style="display:flex; gap:8px;">
             <button onclick="addProduct()" class="save-btn" style="flex:1; padding:10px; margin:0;">Agregar</button>
-            <button onclick="hideAddProduct()" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
+            <button onclick="hideAddForm('producto')" style="flex:1; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; font-weight:600;">Cancelar</button>
           </div>
         </div>
       </div>
@@ -1039,219 +1121,123 @@ function renderConfig() {
 }
 
 // ============================================================
+// CONFIG MANAGEMENT — Optimista (actualiza estado local + envía en background)
+// ============================================================
+function showAddForm(tipo) {
+  document.getElementById("form" + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.remove("hidden");
+}
+function hideAddForm(tipo) {
+  const formId = "form" + tipo.charAt(0).toUpperCase() + tipo.slice(1);
+  document.getElementById(formId).classList.add("hidden");
+}
+
+function addResponsable() {
+  const valor = document.getElementById("inputResponsable").value.trim();
+  if (!valor) { showToast("Escribí un nombre", "error"); return; }
+  if (state.responsables.includes(valor)) { showToast("Ya existe", "error"); return; }
+
+  state.responsables.push(valor);
+  showToast("Responsable agregado ✓", "success");
+  hideAddForm("responsable");
+  renderConfig();
+
+  // Enviar en background
+  encolarEnvio({ action: "addConfig", localId: state.localId, tipo: "responsable", valor });
+}
+
+function removeResponsable(valor) {
+  if (!confirm("¿Eliminar a " + valor + "?")) return;
+  state.responsables = state.responsables.filter(r => r !== valor);
+  showToast("Responsable eliminado ✓", "success");
+  renderConfig();
+  encolarEnvio({ action: "removeConfig", localId: state.localId, tipo: "responsable", valor });
+}
+
+function addCategoria() {
+  const valor = document.getElementById("inputCategoria").value.trim();
+  if (!valor) { showToast("Escribí un nombre", "error"); return; }
+  if (state.categorias.includes(valor)) { showToast("Ya existe", "error"); return; }
+
+  state.categorias.push(valor);
+  showToast("Categoría agregada ✓", "success");
+  hideAddForm("categoria");
+  renderConfig();
+
+  encolarEnvio({ action: "addConfig", localId: state.localId, tipo: "categoria", valor });
+}
+
+function removeCategoria(valor) {
+  if (!confirm("¿Eliminar la categoría " + valor + "?")) return;
+  state.categorias = state.categorias.filter(c => c !== valor);
+  showToast("Categoría eliminada ✓", "success");
+  renderConfig();
+  encolarEnvio({ action: "removeConfig", localId: state.localId, tipo: "categoria", valor });
+}
+
+function addProduct() {
+  const cat  = document.getElementById("selCatForProduct").value;
+  const name = document.getElementById("inputProductName").value.trim();
+  const unit = document.getElementById("inputProductUnit").value.trim() || "u";
+
+  if (!cat)  { showToast("Seleccioná una categoría", "error"); return; }
+  if (!name) { showToast("Escribí el nombre del producto", "error"); return; }
+
+  const newProd = { nombre: name, categoria: cat, unidad: unit };
+  state.products.push(newProd);
+  showToast("Producto agregado ✓", "success");
+  hideAddForm("producto");
+  renderConfig();
+
+  encolarEnvio({ action: "addProduct", localId: state.localId, product: JSON.stringify({ producto: name, categoria: cat, unidad: unit, minimo: 0 }) });
+}
+
+function removeProduct(nombre) {
+  if (!confirm("¿Eliminar el producto " + nombre + "?")) return;
+  state.products = state.products.filter(p => p.nombre !== nombre);
+  showToast("Producto eliminado ✓", "success");
+  renderConfig();
+  encolarEnvio({ action: "removeProduct", localId: state.localId, sku: nombre });
+}
+
+// ============================================================
 // TAB SWITCHING
 // ============================================================
 function switchTab(tab) {
   state.activeTab = tab;
-  
+
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.tab === tab);
   });
-  
+
   ["tabRegistro", "tabHistorial", "tabStats", "tabConfig"].forEach(id => {
     document.getElementById(id).classList.add("hidden");
   });
-  
+
   const tabId = "tab" + tab.charAt(0).toUpperCase() + tab.slice(1);
   document.getElementById(tabId).classList.remove("hidden");
-  
-  if (tab === "historial") loadHistory();
-  if (tab === "stats") loadStats();
-  if (tab === "config") renderConfig();
-  if (tab === "registro") renderRegistro();
-}
 
-function renderCurrentTab() {
-  renderRegistro();
-  renderHistorial();
-  renderStats();
-  renderConfig();
-  
-  ["tabRegistro", "tabHistorial", "tabStats", "tabConfig"].forEach(id => {
-    document.getElementById(id).classList.add("hidden");
-  });
-  const tabId = "tab" + state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
-  document.getElementById(tabId).classList.remove("hidden");
-}
-
-function renderLoading() {
-  document.getElementById("tabRegistro").innerHTML = '<div class="card"><div class="loading-state"><div style="animation:pulse 1s infinite">Cargando datos del local...</div></div></div>';
-}
-
-// ============================================================
-// CONFIG MANAGEMENT
-// ============================================================
-
-// ── RESPONSABLES ──
-function showAddResponsable() {
-  document.getElementById("addResponsableForm").classList.remove("hidden");
-  document.getElementById("inputResponsable").focus();
-}
-
-function hideAddResponsable() {
-  document.getElementById("addResponsableForm").classList.add("hidden");
-  document.getElementById("inputResponsable").value = "";
-}
-
-async function addResponsable() {
-  const valor = document.getElementById("inputResponsable").value.trim();
-  if (!valor) { showToast("Escribí un nombre", "error"); return; }
-  if (state.responsables.includes(valor)) { showToast("Ya existe", "error"); return; }
-  
-  try {
-    const result = await apiCall({
-      action: "addConfig",
-      localId: state.localId,
-      tipo: "responsable",
-      valor: valor
-    });
-    if (result.error) { showToast("Error: " + result.error, "error"); }
-    else {
-      state.responsables.push(valor);
-      showToast("Responsable agregado ✓", "success");
-      hideAddResponsable();
-      renderConfig();
-    }
-  } catch(err) { showToast("Error: " + err.message, "error"); }
-}
-
-async function removeResponsable(valor) {
-  if (!confirm("¿Eliminar a " + valor + "?")) return;
-  try {
-    const result = await apiCall({
-      action: "removeConfig",
-      localId: state.localId,
-      tipo: "responsable",
-      valor: valor
-    });
-    if (result.error) { showToast("Error: " + result.error, "error"); }
-    else {
-      state.responsables = state.responsables.filter(r => r !== valor);
-      showToast("Responsable eliminado ✓", "success");
-      renderConfig();
-    }
-  } catch(err) { showToast("Error: " + err.message, "error"); }
-}
-
-// ── CATEGORÍAS ──
-function showAddCategoria() {
-  document.getElementById("addCategoriaForm").classList.remove("hidden");
-  document.getElementById("inputCategoria").focus();
-}
-
-function hideAddCategoria() {
-  document.getElementById("addCategoriaForm").classList.add("hidden");
-  document.getElementById("inputCategoria").value = "";
-}
-
-async function addCategoria() {
-  const valor = document.getElementById("inputCategoria").value.trim();
-  if (!valor) { showToast("Escribí un nombre", "error"); return; }
-  if (state.categorias.includes(valor)) { showToast("Ya existe", "error"); return; }
-  
-  try {
-    const result = await apiCall({
-      action: "addConfig",
-      localId: state.localId,
-      tipo: "categoria",
-      valor: valor
-    });
-    if (result.error) { showToast("Error: " + result.error, "error"); }
-    else {
-      state.categorias.push(valor);
-      showToast("Categoría agregada ✓", "success");
-      hideAddCategoria();
-      renderConfig();
-    }
-  } catch(err) { showToast("Error: " + err.message, "error"); }
-}
-
-async function removeCategoria(valor) {
-  if (!confirm("¿Eliminar la categoría " + valor + "?")) return;
-  try {
-    const result = await apiCall({
-      action: "removeConfig",
-      localId: state.localId,
-      tipo: "categoria",
-      valor: valor
-    });
-    if (result.error) { showToast("Error: " + result.error, "error"); }
-    else {
-      state.categorias = state.categorias.filter(c => c !== valor);
-      showToast("Categoría eliminada ✓", "success");
-      renderConfig();
-    }
-  } catch(err) { showToast("Error: " + err.message, "error"); }
-}
-
-// ── PRODUCTOS ──
-function showAddProduct() {
-  document.getElementById("addProductForm").classList.remove("hidden");
-  document.getElementById("selCatForProduct").focus();
-}
-
-function hideAddProduct() {
-  document.getElementById("addProductForm").classList.add("hidden");
-  document.getElementById("selCatForProduct").value = "";
-  document.getElementById("inputProductName").value = "";
-  document.getElementById("inputProductUnit").value = "";
-  document.getElementById("inputProductMin").value = "";
-}
-
-async function addProduct() {
-  const cat = document.getElementById("selCatForProduct").value;
-  const name = document.getElementById("inputProductName").value.trim();
-  const unit = document.getElementById("inputProductUnit").value.trim() || "u";
-  const min = parseInt(document.getElementById("inputProductMin").value) || 0;
-  
-  if (!cat) { showToast("Selecciona una categoría", "error"); return; }
-  if (!name) { showToast("Escribí el nombre del producto", "error"); return; }
-  
-  try {
-    const result = await apiCall({
-      action: "addProduct",
-      localId: state.localId,
-      product: JSON.stringify({
-        producto: name,
-        categoria: cat,
-        unidad: unit,
-        minimo: min
-      })
-    });
-    if (result.error) { showToast("Error: " + result.error, "error"); }
-    else {
-      showToast("Producto agregado: " + result.sku + " ✓", "success");
-      hideAddProduct();
-      loadAllData(state.localId);
-    }
-  } catch(err) { showToast("Error: " + err.message, "error"); }
-}
-
-async function removeProduct(sku) {
-  if (!confirm("¿Eliminar el producto " + sku + "?")) return;
-  try {
-    const result = await apiCall({
-      action: "removeProduct",
-      localId: state.localId,
-      sku: sku
-    });
-    if (result.error) { showToast("Error: " + result.error, "error"); }
-    else {
-      showToast("Producto eliminado ✓", "success");
-      loadAllData(state.localId);
-    }
-  } catch(err) { showToast("Error: " + err.message, "error"); }
+  if (tab === "registro")  renderRegistro();
+  if (tab === "historial") renderHistorial();
+  if (tab === "stats")     renderStats();
+  if (tab === "config")    renderConfig();
 }
 
 // ============================================================
 // UTILITIES
 // ============================================================
 function showToast(msg, type = "info") {
+  // Remover toasts anteriores
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
   toast.textContent = msg;
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.3s";
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 </script>
 
