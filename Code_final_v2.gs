@@ -24,7 +24,7 @@
 // ============================================================
 // CONFIGURACIÓN
 // ============================================================
-const TELEGRAM_BOT_TOKEN = "PEGAR_TU_BOT_TOKEN";
+const TELEGRAM_BOT_TOKEN = "8667407358:AAF9VdTQ9IMffKDFbvLPw-2cCqmED-OgzpE";
 const TELEGRAM_CHAT_ID   = "7259177758";
 const EMAIL_NOTIFICACION = "yaakovrubi@gmail.com";
 
@@ -325,9 +325,12 @@ function agregarRegistro(localId, responsable, producto, cantidad, tipo, nota) {
       nota        || ""
     ]]);
 
+    // Obtener mínimo del producto para el mensaje de Telegram
+    const minimoProducto = prod ? (prod.minimo || 0) : 0;
+
     // Enviar notificaciones en background (no bloquea)
     try {
-      enviarNotificaciones(localId, responsable, producto, cantidad, tipo);
+      enviarNotificaciones(localId, responsable, producto, cantidad, tipo, nota, sku, stockValue, minimoProducto);
     } catch(e) { Logger.log("Notif error: " + e); }
 
     return {
@@ -482,43 +485,37 @@ function removeProduct(localId, sku) {
 // ============================================================
 // NOTIFICACIONES
 // ============================================================
-function enviarNotificaciones(localId, responsable, producto, cantidad, tipo) {
+function enviarNotificaciones(localId, responsable, producto, cantidad, tipo, nota, sku, stockValue, minimo) {
   const localName = LOCAL_NAMES[localId] || localId;
   const now       = new Date();
-  const fechaStr  = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
-  const horaStr   = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm");
+  const fechaHora = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
 
-  const emoji  = tipo === "Entrada" ? "📥" : "📤";
+  // Determinar estado vs mínimo
+  const minimoNum = Number(minimo) || 0;
+  const stockNum  = Number(stockValue) || Number(cantidad) || 0;
+  const estadoMin = minimoNum > 0 && stockNum < minimoNum ? "⚠️ BAJO MÍNIMO" : "✅ OK";
+
+  // Formato exacto solicitado
+  const emoji = tipo === "Entrada" ? "📥" : "📤";
+  const skuStr = sku ? " (" + sku + ")" : "";
   const mensaje =
-    emoji + " " + tipo.toUpperCase() + " DE MERCADERÍA\n" +
-    "═══════════════════════════════\n" +
-    "📍 LOCAL: " + localName.toUpperCase() + "\n" +
-    "👤 RESPONSABLE: " + responsable + "\n" +
-    "📦 PRODUCTO: " + producto + "\n" +
-    "📊 CANTIDAD: " + cantidad + "\n" +
-    "═══════════════════════════════\n" +
-    "📅 FECHA: " + fechaStr + "\n" +
-    "🕐 HORA: " + horaStr;
+    emoji + " Registro de stock\n" +
+    "🏪 Local: " + localName + "\n" +
+    "📦 Producto: " + producto + skuStr + "\n" +
+    "🔢 Stock: " + stockNum + " " + stockNum + "\n" +
+    "📉 Mínimo: " + minimoNum + " " + minimoNum + " • " + estadoMin + "\n" +
+    "👤 Responsable: " + responsable + "\n" +
+    "🕒 Fecha: " + fechaHora;
 
   try {
-    GmailApp.sendEmail(
-      EMAIL_NOTIFICACION,
-      "[" + localName + "] " + tipo + " — " + producto,
-      mensaje
+    UrlFetchApp.fetch(
+      "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage",
+      {
+        method:      "post",
+        payload:     JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje }),
+        contentType: "application/json"
+      }
     );
-  } catch(e) { Logger.log("Email error: " + e); }
-
-  try {
-    if (TELEGRAM_BOT_TOKEN && TELEGRAM_BOT_TOKEN !== "PEGAR_TU_BOT_TOKEN") {
-      UrlFetchApp.fetch(
-        "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage",
-        {
-          method:      "post",
-          payload:     JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje }),
-          contentType: "application/json"
-        }
-      );
-    }
   } catch(e) { Logger.log("Telegram error: " + e); }
 }
 
