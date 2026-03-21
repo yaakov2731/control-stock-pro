@@ -711,8 +711,8 @@ function addProduct(localId, product) {
   // Si no hay SKU, generar automáticamente
   const sku = product.sku || generateNextSKU(localId);
   
-  sheet.getRange(nextRow, 1, 1, 6).setValues([[sku, product.nombre || product.producto
-  
+  sheet.getRange(nextRow, 1, 1, 6).setValues([[sku, product.nombre || product.producto || "", product.categoria || "", product.unidad || "u", product.minimo || 0, true]]);
+
   const bg = (nextRow % 2 === 0) ? COLORS.rowEven : COLORS.rowOdd;
   sheet.getRange(nextRow, 1, 1, 6).setBackground(bg).setFontSize(10);
   

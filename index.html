@@ -580,12 +580,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 // API — POST con no-cors (optimistic)
 // ============================================================
 function apiPost(data) {
-  return fetch(SCRIPT_URL, {
-    method:  "POST",
-    mode:    "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data)
+  const url = new URL(SCRIPT_URL);
+  Object.keys(data).forEach(k => {
+    const v = data[k];
+    url.searchParams.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
   });
+  return fetch(url.toString(), { method: "POST", mode: "no-cors" });
 }
 
 // API — GET con CORS (para leer datos)
@@ -662,8 +662,10 @@ function applyConfigForLocal(localId, config) {
   if (!config) return;
   state.allConfig    = config;
   state.configLoaded = true;
-  state.responsables = (config.responsables && config.responsables[localId]) || [];
-  state.categorias   = (config.categorias   && config.categorias[localId])   || [];
+  const resp = config.responsables;
+  state.responsables = Array.isArray(resp) ? resp : ((resp && resp[localId]) || []);
+  const cats = config.categorias;
+  state.categorias   = Array.isArray(cats) ? cats : ((cats && cats[localId]) || []);
   state.products     = (config.productos    && config.productos[localId])    || [];
   // Re-renderizar
   if (state.activeTab === "registro") renderRegistro();
@@ -896,12 +898,15 @@ async function procesarCola() {
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 30000);
 
-    await fetch(SCRIPT_URL, {
-      method:  "POST",
-      mode:    "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(item),
-      signal:  controller.signal
+    const postUrl = new URL(SCRIPT_URL);
+    Object.keys(item).forEach(k => {
+      const v = item[k];
+      postUrl.searchParams.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+    });
+    await fetch(postUrl.toString(), {
+      method: "POST",
+      mode:   "no-cors",
+      signal: controller.signal
     });
 
     clearTimeout(timeoutId);
@@ -1143,13 +1148,11 @@ function addResponsable() {
   const cacheKey = "csp_config_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (!parsed.responsables) parsed.responsables = [];
-      parsed.responsables.push(valor);
-      parsed._ts = Date.now();
-      localStorage.setItem(cacheKey, JSON.stringify(parsed));
-    }
+    const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
+    if (!parsed.responsables) parsed.responsables = [];
+    parsed.responsables.push(valor);
+    parsed._ts = Date.now();
+    localStorage.setItem(cacheKey, JSON.stringify(parsed));
   } catch(e) {}
   showToast("Responsable agregado ✓", "success");
   hideAddForm("responsable");
@@ -1167,14 +1170,11 @@ function removeResponsable(valor) {
   const cacheKey = "csp_config_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed.responsables) {
-        parsed.responsables = parsed.responsables.filter(r => r !== valor);
-        parsed._ts = Date.now();
-        localStorage.setItem(cacheKey, JSON.stringify(parsed));
-      }
-    }
+    const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
+    if (!parsed.responsables) parsed.responsables = [];
+    parsed.responsables = parsed.responsables.filter(r => r !== valor);
+    parsed._ts = Date.now();
+    localStorage.setItem(cacheKey, JSON.stringify(parsed));
   } catch(e) {}
   showToast("Responsable eliminado ✓", "success");
   renderConfig();
@@ -1192,13 +1192,11 @@ function addCategoria() {
   const cacheKey = "csp_config_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (!parsed.categorias) parsed.categorias = [];
-      parsed.categorias.push(valor);
-      parsed._ts = Date.now();
-      localStorage.setItem(cacheKey, JSON.stringify(parsed));
-    }
+    const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
+    if (!parsed.categorias) parsed.categorias = [];
+    parsed.categorias.push(valor);
+    parsed._ts = Date.now();
+    localStorage.setItem(cacheKey, JSON.stringify(parsed));
   } catch(e) {}
   showToast("Categoría agregada ✓", "success");
   hideAddForm("categoria");
@@ -1215,14 +1213,11 @@ function removeCategoria(valor) {
   const cacheKey = "csp_config_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed.categorias) {
-        parsed.categorias = parsed.categorias.filter(c => c !== valor);
-        parsed._ts = Date.now();
-        localStorage.setItem(cacheKey, JSON.stringify(parsed));
-      }
-    }
+    const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
+    if (!parsed.categorias) parsed.categorias = [];
+    parsed.categorias = parsed.categorias.filter(c => c !== valor);
+    parsed._ts = Date.now();
+    localStorage.setItem(cacheKey, JSON.stringify(parsed));
   } catch(e) {}
   showToast("Categoría eliminada ✓", "success");
   renderConfig();
@@ -1244,14 +1239,12 @@ function addProduct() {
   const cacheKey = "csp_config_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (!parsed.productos) parsed.productos = {};
-      if (!parsed.productos[state.localId]) parsed.productos[state.localId] = [];
-      parsed.productos[state.localId].push(newProd);
-      parsed._ts = Date.now();
-      localStorage.setItem(cacheKey, JSON.stringify(parsed));
-    }
+    const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
+    if (!parsed.productos) parsed.productos = {};
+    if (!parsed.productos[state.localId]) parsed.productos[state.localId] = [];
+    parsed.productos[state.localId].push(newProd);
+    parsed._ts = Date.now();
+    localStorage.setItem(cacheKey, JSON.stringify(parsed));
   } catch(e) { console.warn("Error actualizando caché:", e); }
   showToast("Producto agregado ✓", "success");
   hideAddForm("producto");
@@ -1268,14 +1261,12 @@ function removeProduct(nombre) {
   const cacheKey = "csp_config_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed.productos && parsed.productos[state.localId]) {
-        parsed.productos[state.localId] = parsed.productos[state.localId].filter(p => p.nombre !== nombre);
-        parsed._ts = Date.now();
-        localStorage.setItem(cacheKey, JSON.stringify(parsed));
-      }
-    }
+    const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
+    if (!parsed.productos) parsed.productos = {};
+    if (!parsed.productos[state.localId]) parsed.productos[state.localId] = [];
+    parsed.productos[state.localId] = parsed.productos[state.localId].filter(p => p.nombre !== nombre);
+    parsed._ts = Date.now();
+    localStorage.setItem(cacheKey, JSON.stringify(parsed));
   } catch(e) {}
   showToast("Producto eliminado ✓", "success");
   renderConfig();
