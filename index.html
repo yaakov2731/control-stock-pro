@@ -554,6 +554,7 @@ const state = {
   categorias:   [],
   tipoSeleccionado: "Entrada",  // "Entrada" | "Salida"
   configLoaded: false,
+    registroRendered: false,
 };
 
 // Cola de registros pendientes de envío (optimistic)
@@ -622,28 +623,26 @@ async function loadConfigForLocal(localId) {
   try {
     actualizarStatusDot("syncing");
     // Cargar config (responsables + categorías) y productos en paralelo
-    const [configData, prodData] = await Promise.all([
-      apiGet({ action: "getConfig", localId: localId }),
-      apiGet({ action: "getProducts", localId: localId })
-    ]);
-
+        // ✅ UNA SOLA LLAMADA - getConfig ya incluye productos en Code.gs
+    const configData = await apiGet({ action: "getConfig", localId: localId });
+    
     const merged = {
-      responsables: configData.responsables || {},
-      categorias:   configData.categorias   || {},
-      productos:    {},
-      _ts:          Date.now()
+      responsables: configData.responsables || [],
+      categorias: configData.categorias || [],
+      productos: {},
+      _ts: Date.now()
     };
-
-    // Los productos vienen directamente de la pestaña del local
-    if (prodData.products && prodData.products.length > 0) {
-      merged.productos[localId] = prodData.products.map(p => ({
-        sku:       p.sku,
-        nombre:    p.nombre || p.producto,
+    
+    // ✅ Usar los productos que ya vienen en configData
+    if (configData.productos && configData.productos.length > 0) {
+      merged.productos[localId] = configData.productos.map(p => ({
+        sku: p.sku,
+        nombre: p.producto || p.nombre,
         categoria: p.categoria,
-        unidad:    p.unidad
+        unidad: p.unidad
       }));
     }
-
+    
     localStorage.setItem(cacheKey, JSON.stringify(merged));
     applyConfigForLocal(localId, merged);
     actualizarStatusDot("online");
@@ -707,6 +706,8 @@ function selectLocal(id, name) {
 
   // Mostrar form inmediatamente (vacío) y cargar config en background
   renderRegistro();
+    state.registroRendered = true;
+    state.registroRendered = false; // ← resetear al cambiar de local
   loadConfigForLocal(id);
 }
 
