@@ -1138,6 +1138,19 @@ function addResponsable() {
   if (state.responsables.includes(valor)) { showToast("Ya existe", "error"); return; }
 
   state.responsables.push(valor);
+    
+  // ✅ Actualizar caché
+  const cacheKey = "csp_config_" + state.localId;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (!parsed.responsables) parsed.responsables = [];
+      parsed.responsables.push(valor);
+      parsed._ts = Date.now();
+      localStorage.setItem(cacheKey, JSON.stringify(parsed));
+    }
+  } catch(e) {}
   showToast("Responsable agregado ✓", "success");
   hideAddForm("responsable");
   renderConfig();
@@ -1149,6 +1162,20 @@ function addResponsable() {
 function removeResponsable(valor) {
   if (!confirm("¿Eliminar a " + valor + "?")) return;
   state.responsables = state.responsables.filter(r => r !== valor);
+    
+  // ✅ Actualizar caché
+  const cacheKey = "csp_config_" + state.localId;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.responsables) {
+        parsed.responsables = parsed.responsables.filter(r => r !== valor);
+        parsed._ts = Date.now();
+        localStorage.setItem(cacheKey, JSON.stringify(parsed));
+      }
+    }
+  } catch(e) {}
   showToast("Responsable eliminado ✓", "success");
   renderConfig();
   encolarEnvio({ action: "removeConfig", localId: state.localId, tipo: "responsable", valor });
@@ -1160,6 +1187,19 @@ function addCategoria() {
   if (state.categorias.includes(valor)) { showToast("Ya existe", "error"); return; }
 
   state.categorias.push(valor);
+    
+  // ✅ Actualizar caché
+  const cacheKey = "csp_config_" + state.localId;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (!parsed.categorias) parsed.categorias = [];
+      parsed.categorias.push(valor);
+      parsed._ts = Date.now();
+      localStorage.setItem(cacheKey, JSON.stringify(parsed));
+    }
+  } catch(e) {}
   showToast("Categoría agregada ✓", "success");
   hideAddForm("categoria");
   renderConfig();
@@ -1170,6 +1210,20 @@ function addCategoria() {
 function removeCategoria(valor) {
   if (!confirm("¿Eliminar la categoría " + valor + "?")) return;
   state.categorias = state.categorias.filter(c => c !== valor);
+    
+  // ✅ Actualizar caché
+  const cacheKey = "csp_config_" + state.localId;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.categorias) {
+        parsed.categorias = parsed.categorias.filter(c => c !== valor);
+        parsed._ts = Date.now();
+        localStorage.setItem(cacheKey, JSON.stringify(parsed));
+      }
+    }
+  } catch(e) {}
   showToast("Categoría eliminada ✓", "success");
   renderConfig();
   encolarEnvio({ action: "removeConfig", localId: state.localId, tipo: "categoria", valor });
@@ -1185,6 +1239,20 @@ function addProduct() {
 
   const newProd = { nombre: name, categoria: cat, unidad: unit };
   state.products.push(newProd);
+    
+  // ✅ Actualizar caché del localStorage
+  const cacheKey = "csp_config_" + state.localId;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (!parsed.productos) parsed.productos = {};
+      if (!parsed.productos[state.localId]) parsed.productos[state.localId] = [];
+      parsed.productos[state.localId].push(newProd);
+      parsed._ts = Date.now();
+      localStorage.setItem(cacheKey, JSON.stringify(parsed));
+    }
+  } catch(e) { console.warn("Error actualizando caché:", e); }
   showToast("Producto agregado ✓", "success");
   hideAddForm("producto");
   renderConfig();
@@ -1195,6 +1263,20 @@ function addProduct() {
 function removeProduct(nombre) {
   if (!confirm("¿Eliminar el producto " + nombre + "?")) return;
   state.products = state.products.filter(p => p.nombre !== nombre);
+    
+  // ✅ Actualizar caché
+  const cacheKey = "csp_config_" + state.localId;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.productos && parsed.productos[state.localId]) {
+        parsed.productos[state.localId] = parsed.productos[state.localId].filter(p => p.nombre !== nombre);
+        parsed._ts = Date.now();
+        localStorage.setItem(cacheKey, JSON.stringify(parsed));
+      }
+    }
+  } catch(e) {}
   showToast("Producto eliminado ✓", "success");
   renderConfig();
   encolarEnvio({ action: "removeProduct", localId: state.localId, sku: nombre });
