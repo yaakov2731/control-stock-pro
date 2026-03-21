@@ -511,6 +511,22 @@ function handleRequest(e) {
       case "getHistory": result = getHistory(params.localId, parseInt(params.limit) || 50); break;
       case "getStats": result = getStats(params.localId); break;
       case "saveStock": result = saveStockEntry(params.localId, JSON.parse(params.entry)); break;
+      case "agregarRegistro": {
+        const localId = params.local || params.localId;
+        const prods = getProducts(localId);
+        const found = (prods.products || []).find(p => p.producto === params.producto || p.nombre === params.producto);
+        const entry = {
+          usuario:  params.responsable || "",
+          sku:      found ? found.sku : "",
+          producto: params.producto || "",
+          stock:    Number(params.cantidad) || 0,
+          nota:     params.nota || "",
+          tipo:     params.tipo || "Entrada",
+          _ts:      params._ts || new Date().toISOString()
+        };
+        result = saveStockEntry(localId, entry);
+        break;
+      }
       case "addProduct": result = addProduct(params.localId, JSON.parse(params.product)); break;
       case "toggleProduct": result = toggleProduct(params.localId, params.sku, params.activo === "true"); break;
       case "addConfig": result = addConfigItem(params.localId, params.tipo, params.valor); break;
