@@ -1257,7 +1257,7 @@ function addProduct() {
   hideAddForm("producto");
   renderConfig();
 
-  encolarEnvio({ action: "addProduct", localId: state.localId, product: JSON.stringify({ producto: name, categoria: cat, unidad: unit, minimo: 0 }) });
+  encolarEnvio({ action: "addProduct", localId: state.localId, product: JSON.stringify({ nombre: name, categoria: cat, unidad: unit, minimo: 0 }) });
 }
 
 function removeProduct(nombre) {
