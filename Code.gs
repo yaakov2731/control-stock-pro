@@ -804,8 +804,7 @@ function notifyNewStock(localId, entry, product) {
   if (NOTIFY_ONLY_CRITICAL && !isCritical) return;
   
   if (NOTIFY_TELEGRAM_ON) {
-    const msg = `📦 ${localName}\n${entry.producto} (${entry.sku})\n📊 Stock: ${entry.stock} ${product?.unidad || 'u'}\n⚠️ Mín: ${product?.minimo || 'N/A'}\n👤 ${entry.usuario}`;
-    sendTelegram(msg);
+        const msg = `📥 Registro de stock\n🏪 Local: ${localName}\n📦 Producto: ${entry.producto} (${entry.sku})\n🔢 Stock: ${entry.stock} ${product?.unidad || 'u'}\n📉 Mínimo: ${product?.minimo || 0} ${product?.unidad || 'u'} • ${isCritical ? '⚠️ BAJO' : '✅ OK'}\n👤 Responsable: ${entry.usuario}\n🕒 Fecha: ${new Date(entry._ts || Date.now()).toLocaleString('es-AR')}`;sendTelegram(msg);
   }
   
   if (NOTIFY_EMAIL_ON) {
