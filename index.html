@@ -580,12 +580,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 // API — POST con no-cors (optimistic)
 // ============================================================
 function apiPost(data) {
-  return fetch(SCRIPT_URL, {
-    method:  "POST",
-    mode:    "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data)
+  const url = new URL(SCRIPT_URL);
+  Object.keys(data).forEach(k => {
+    const v = data[k];
+    url.searchParams.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
   });
+  return fetch(url.toString(), { method: "POST", mode: "no-cors" });
 }
 
 // API — GET con CORS (para leer datos)
@@ -898,12 +898,15 @@ async function procesarCola() {
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 30000);
 
-    await fetch(SCRIPT_URL, {
-      method:  "POST",
-      mode:    "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(item),
-      signal:  controller.signal
+    const postUrl = new URL(SCRIPT_URL);
+    Object.keys(item).forEach(k => {
+      const v = item[k];
+      postUrl.searchParams.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+    });
+    await fetch(postUrl.toString(), {
+      method: "POST",
+      mode:   "no-cors",
+      signal: controller.signal
     });
 
     clearTimeout(timeoutId);
