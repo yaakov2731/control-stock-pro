@@ -9,8 +9,8 @@
 // ============================================================
 
 // Telegram Bot
-const TELEGRAM_BOT_TOKEN = "PEGAR_TU_BOT_TOKEN";
-const TELEGRAM_CHAT_ID   = "PEGAR_TU_CHAT_ID";
+const TELEGRAM_BOT_TOKEN = "8652355671:AAG-o9eBQ7Zo0XwGeQjK7Kvw2K6n3k8FMpg";
+const TELEGRAM_CHAT_ID   = "7259177758";
 
 // Email
 const NOTIFY_EMAILS = "jacobo@tumail.com";
