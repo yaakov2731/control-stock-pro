@@ -531,7 +531,7 @@ select option { background: #0f172a; color: #e2e8f0; }
 // ============================================================
 // CONFIG — URL del Apps Script (POST)
 // ============================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDYUvVT06csgULgwvOnIUygsT8ZWm6U4xMV38BJXd01VmGlJmJcK8_7QMKGOs9DsVk/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVxacOq_fsja0uAvMGTEW6LgXh8T8ygl9wohOarirS0V0N5ZdqtP7LKDcEDxMuQIvF/exec";
 
 const LOCALES = [
   { id: "umo",      name: "Umo Grill",      icon: "🔥" },
@@ -898,15 +898,12 @@ async function procesarCola() {
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 30000);
 
-    const postUrl = new URL(SCRIPT_URL);
-    Object.keys(item).forEach(k => {
-      const v = item[k];
-      postUrl.searchParams.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
-    });
-    await fetch(postUrl.toString(), {
-      method: "POST",
-      mode:   "no-cors",
-      signal: controller.signal
+    await fetch(SCRIPT_URL, {
+      method:  "POST",
+      mode:    "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body:    JSON.stringify(item),
+      signal:  controller.signal
     });
 
     clearTimeout(timeoutId);
