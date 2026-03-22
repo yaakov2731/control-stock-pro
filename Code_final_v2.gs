@@ -24,7 +24,7 @@
 // ============================================================
 // CONFIGURACIÓN
 // ============================================================
-const TELEGRAM_BOT_TOKEN = "8667407358:AAF9VdTQ9IMffKDFbvLPw-2cCqmED-OgzpE";
+const TELEGRAM_BOT_TOKEN = "8762221483:AAFBpli8j_qUGEsyvrreDcFixjIJ-c0X86g";
 const TELEGRAM_CHAT_ID   = "7259177758";
 const EMAIL_NOTIFICACION = "yaakovrubi@gmail.com";
 
@@ -330,7 +330,8 @@ function agregarRegistro(localId, responsable, producto, cantidad, tipo, nota) {
 
     // Enviar notificaciones en background (no bloquea)
     try {
-      enviarNotificaciones(localId, responsable, producto, cantidad, tipo, nota, sku, stockValue, minimoProducto);
+      const unidadProducto = prod ? (prod.unidad || "") : "";
+      enviarNotificaciones(localId, responsable, producto, cantidad, tipo, nota, sku, stockValue, minimoProducto, unidadProducto);
     } catch(e) { Logger.log("Notif error: " + e); }
 
     return {
@@ -485,7 +486,7 @@ function removeProduct(localId, sku) {
 // ============================================================
 // NOTIFICACIONES
 // ============================================================
-function enviarNotificaciones(localId, responsable, producto, cantidad, tipo, nota, sku, stockValue, minimo) {
+function enviarNotificaciones(localId, responsable, producto, cantidad, tipo, nota, sku, stockValue, minimo, unidad) {
   const localName = LOCAL_NAMES[localId] || localId;
   const now       = new Date();
   const fechaHora = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
@@ -502,20 +503,25 @@ function enviarNotificaciones(localId, responsable, producto, cantidad, tipo, no
     emoji + " Registro de stock\n" +
     "🏪 Local: " + localName + "\n" +
     "📦 Producto: " + producto + skuStr + "\n" +
-    "🔢 Stock: " + stockNum + " " + stockNum + "\n" +
-    "📉 Mínimo: " + minimoNum + " " + minimoNum + " • " + estadoMin + "\n" +
+    "🔢 Stock: " + stockNum + (unidad ? " " + unidad : "") + "\n" +
+    "📉 Mínimo: " + minimoNum + (unidad ? " " + unidad : "") + " • " + estadoMin + "\n" +
     "👤 Responsable: " + responsable + "\n" +
     "🕒 Fecha: " + fechaHora;
 
   try {
-    UrlFetchApp.fetch(
+    const resp = UrlFetchApp.fetch(
       "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage",
       {
-        method:      "post",
-        payload:     JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje }),
-        contentType: "application/json"
+        method:             "post",
+        payload:            JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje }),
+        contentType:        "application/json",
+        muteHttpExceptions: true
       }
     );
+    const body = resp.getContentText();
+    if (resp.getResponseCode() !== 200) {
+      Logger.log("Telegram error HTTP " + resp.getResponseCode() + ": " + body);
+    }
   } catch(e) { Logger.log("Telegram error: " + e); }
 }
 
