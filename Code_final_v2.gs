@@ -24,7 +24,7 @@
 // ============================================================
 // CONFIGURACIÓN
 // ============================================================
-const TELEGRAM_BOT_TOKEN = "8762221483:AAFBpli8j_qUGEsyvrreDcFixjIJ-c0X86g";
+const TELEGRAM_BOT_TOKEN = "8667407358:AAF9VdTQ9IMffKDFbvLPw-2cCqmED-OgzpE";
 const TELEGRAM_CHAT_ID   = "7259177758";
 const EMAIL_NOTIFICACION = "yaakovrubi@gmail.com";
 
