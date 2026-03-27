@@ -474,6 +474,70 @@ select option { background: #0f172a; color: #e2e8f0; }
   .local-grid { grid-template-columns: 1fr 1fr; }
   .header h1 { font-size: 24px; }
 }
+
+/* ===== AGREGAR A LISTA ===== */
+.add-list-btn {
+  padding: 16px 14px;
+  border-radius: 14px;
+  border: 2px solid var(--primary-light);
+  background: rgba(59,130,246,0.1);
+  color: var(--primary-light);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 rgba(30,64,175,0.3), 0 6px 16px rgba(30,64,175,0.15);
+}
+.add-list-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(30,64,175,0.3); }
+.add-list-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ===== LISTA PENDIENTE ===== */
+.pending-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(30,64,175,0.07);
+  border: 1px solid rgba(30,64,175,0.15);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.pending-item-info { flex: 1; }
+.pending-item-name { font-weight: 600; color: var(--text); }
+.pending-item-detail { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.pending-item-remove {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.save-all-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #1e3a8a, var(--primary-light));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 8px 0 rgba(30,58,138,0.6), 0 12px 28px rgba(30,64,175,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  text-transform: uppercase;
+  margin-top: 8px;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.save-all-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(30,58,138,0.6), 0 6px 14px rgba(30,64,175,0.2); }
 </style>
 </head>
 <body>
@@ -508,7 +572,7 @@ select option { background: #0f172a; color: #e2e8f0; }
 </div>
 
 <!-- TABS BAR -->
-<div class="tabs-bar" id="tabsBar" class="hidden">
+<div class="tabs-bar hidden" id="tabsBar">
   <button class="tab-btn active" data-tab="registro" onclick="switchTab('registro')">
     <span class="tab-icon">📝</span>
     <span>Registro</span>
@@ -554,7 +618,7 @@ const state = {
   categorias:   [],
   tipoSeleccionado: "Entrada",  // "Entrada" | "Salida"
   configLoaded: false,
-    registroRendered: false,
+  pendingItems: [],
 };
 
 // Cola de registros pendientes de envío (optimistic)
@@ -707,9 +771,8 @@ function selectLocal(id, name) {
   });
 
   // Mostrar form inmediatamente (vacío) y cargar config en background
+  state.pendingItems = [];
   renderRegistro();
-    state.registroRendered = true;
-    state.registroRendered = false; // ← resetear al cambiar de local
   loadConfigForLocal(id);
 }
 
@@ -717,6 +780,29 @@ function selectLocal(id, name) {
 // RENDER: REGISTRO
 // ============================================================
 function renderRegistro() {
+  if (!state.pendingItems) state.pendingItems = [];
+
+  const pendingHtml = state.pendingItems.length > 0 ? `
+    <div class="card" style="margin-top:0; padding-top:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:13px; font-weight:700; color:var(--primary-light);">📋 Lista (${state.pendingItems.length} producto${state.pendingItems.length !== 1 ? 's' : ''})</span>
+        <button onclick="clearPendingList()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; font-weight:600; padding:4px 8px; border-radius:8px; border:1px solid var(--border);">Limpiar</button>
+      </div>
+      ${state.pendingItems.map((item, i) => `
+        <div class="pending-item">
+          <div class="pending-item-info">
+            <div class="pending-item-name">${item.tipo === 'Entrada' ? '📥' : '📤'} ${item.producto}</div>
+            <div class="pending-item-detail">${item.cantidad}${item.unidad ? ' ' + item.unidad : ''} · ${item.tipo}${item.nota ? ' · ' + item.nota : ''}</div>
+          </div>
+          <button class="pending-item-remove" onclick="removeFromList(${i})">✕</button>
+        </div>
+      `).join("")}
+      <button class="save-all-btn" onclick="handleSaveAll()">
+        GUARDAR TODO (${state.pendingItems.length})
+      </button>
+    </div>
+  ` : "";
+
   document.getElementById("tabRegistro").innerHTML = `
     <div class="card">
       <label class="form-label">Responsable</label>
@@ -727,9 +813,9 @@ function renderRegistro() {
 
       <label class="form-label">Tipo de Movimiento</label>
       <div class="tipo-row">
-        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Entrada' ? 'active-entrada' : ''}" 
+        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Entrada' ? 'active-entrada' : ''}"
                 onclick="seleccionarTipo('Entrada')">📥 Entrada</button>
-        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Salida' ? 'active-salida' : ''}" 
+        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Salida' ? 'active-salida' : ''}"
                 onclick="seleccionarTipo('Salida')">📤 Salida</button>
       </div>
 
@@ -740,13 +826,13 @@ function renderRegistro() {
       </select>
 
       <label class="form-label">Insumo / Producto</label>
-      <select class="form-select" id="selProducto" disabled onchange="validateForm()">
+      <select class="form-select" id="selProducto" disabled onchange="onProductoChange()">
         <option value="">Primero elegí categoría...</option>
       </select>
 
       <label class="form-label">Cantidad</label>
       <div class="input-row">
-        <input type="number" class="form-input" id="inputCantidad" placeholder="0" min="0" step="0.5" 
+        <input type="number" class="form-input" id="inputCantidad" placeholder="0" min="0" step="0.5"
                style="flex:1;margin-bottom:0" oninput="validateForm()">
         <span class="input-unit" id="unitLabel">—</span>
       </div>
@@ -756,10 +842,16 @@ function renderRegistro() {
         <input type="text" class="form-input" id="inputNota" placeholder="Observación..." style="margin-bottom:0">
       </div>
 
-      <button class="save-btn" id="btnSave" disabled onclick="handleSave()">
-        GUARDAR REGISTRO
-      </button>
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        <button class="save-btn" id="btnSave" disabled onclick="handleSave()" style="flex:1; margin:0;">
+          GUARDAR
+        </button>
+        <button class="add-list-btn" id="btnAddToList" disabled onclick="addToList()">
+          + LISTA
+        </button>
+      </div>
     </div>
+    ${pendingHtml}
   `;
 }
 
@@ -791,6 +883,13 @@ function onCategoriaChange() {
   validateForm();
 }
 
+function onProductoChange() {
+  const prodName = document.getElementById("selProducto").value;
+  const prod = state.products.find(p => p.nombre === prodName);
+  document.getElementById("unitLabel").textContent = prod?.unidad || "—";
+  validateForm();
+}
+
 function validateForm() {
   const resp  = document.getElementById("selResponsable")?.value;
   const prod  = document.getElementById("selProducto")?.value;
@@ -798,6 +897,8 @@ function validateForm() {
   const isValid = resp && prod && cant && parseFloat(cant) > 0;
   const btn = document.getElementById("btnSave");
   if (btn) btn.disabled = !isValid;
+  const btnList = document.getElementById("btnAddToList");
+  if (btnList) btnList.disabled = !isValid;
 }
 
 // ============================================================
@@ -1268,6 +1369,72 @@ function removeProduct(nombre) {
   showToast("Producto eliminado ✓", "success");
   renderConfig();
   encolarEnvio({ action: "removeProduct", localId: state.localId, sku: nombre });
+}
+
+// ============================================================
+// LISTA MULTI-PRODUCTO
+// ============================================================
+function addToList() {
+  const resp   = document.getElementById("selResponsable").value;
+  const prod   = document.getElementById("selProducto").value;
+  const cant   = parseFloat(document.getElementById("inputCantidad").value) || 0;
+  const nota   = document.getElementById("inputNota").value.trim();
+  const tipo   = state.tipoSeleccionado;
+  const unidad = state.products.find(p => p.nombre === prod)?.unidad || "";
+
+  if (!resp || !prod || cant <= 0) {
+    showToast("Completá todos los campos", "error");
+    return;
+  }
+
+  if (!state.pendingItems) state.pendingItems = [];
+  state.pendingItems.push({ responsable: resp, producto: prod, cantidad: cant, tipo, nota, unidad });
+
+  if (navigator.vibrate) navigator.vibrate(30);
+  showToast(`Agregado: ${prod} × ${cant}`, "success");
+
+  // Re-render mostrando la lista; restaurar responsable
+  renderRegistro();
+  const selResp = document.getElementById("selResponsable");
+  if (selResp) selResp.value = resp;
+}
+
+function removeFromList(index) {
+  if (!state.pendingItems) return;
+  state.pendingItems.splice(index, 1);
+  renderRegistro();
+}
+
+function clearPendingList() {
+  state.pendingItems = [];
+  renderRegistro();
+}
+
+function handleSaveAll() {
+  if (!state.pendingItems || state.pendingItems.length === 0) return;
+
+  const items = [...state.pendingItems];
+  state.pendingItems = [];
+
+  items.forEach(item => {
+    const registro = {
+      action:      "agregarRegistro",
+      local:       state.localId,
+      localName:   state.localName,
+      responsable: item.responsable,
+      producto:    item.producto,
+      cantidad:    item.cantidad,
+      tipo:        item.tipo,
+      nota:        item.nota || "",
+      _ts:         new Date().toISOString()
+    };
+    guardarEnHistorialLocal(registro);
+    encolarEnvio(registro);
+  });
+
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+  showToast(`✅ ${items.length} registro${items.length !== 1 ? 's' : ''} guardado${items.length !== 1 ? 's' : ''}!`, "success");
+  renderRegistro();
 }
 
 // ============================================================
