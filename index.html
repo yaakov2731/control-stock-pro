@@ -772,6 +772,7 @@ function selectLocal(id, name) {
 
   // Mostrar form inmediatamente (vacío) y cargar config en background
   state.pendingItems = [];
+  state.lastResponsable = "";
   renderRegistro();
   loadConfigForLocal(id);
 }
@@ -781,6 +782,13 @@ function selectLocal(id, name) {
 // ============================================================
 function renderRegistro() {
   if (!state.pendingItems) state.pendingItems = [];
+
+  // Guardar valores actuales del formulario antes de re-renderizar
+  const savedResp = document.getElementById("selResponsable")?.value || state.lastResponsable || "";
+  const savedCat  = document.getElementById("selCategoria")?.value || "";
+  const savedProd = document.getElementById("selProducto")?.value || "";
+  const savedCant = document.getElementById("inputCantidad")?.value || "";
+  const savedNota = document.getElementById("inputNota")?.value || "";
 
   const pendingHtml = state.pendingItems.length > 0 ? `
     <div class="card" style="margin-top:0; padding-top:16px;">
@@ -808,7 +816,7 @@ function renderRegistro() {
       <label class="form-label">Responsable</label>
       <select class="form-select" id="selResponsable" onchange="validateForm()">
         <option value="">Seleccionar...</option>
-        ${state.responsables.map(r => `<option value="${r}">${r}</option>`).join("")}
+        ${state.responsables.map(r => `<option value="${r}" ${r === savedResp ? 'selected' : ''}>${r}</option>`).join("")}
       </select>
 
       <label class="form-label">Tipo de Movimiento</label>
@@ -822,7 +830,7 @@ function renderRegistro() {
       <label class="form-label">Categoría</label>
       <select class="form-select" id="selCategoria" onchange="onCategoriaChange()">
         <option value="">Seleccionar...</option>
-        ${state.categorias.map(c => `<option value="${c}">${c}</option>`).join("")}
+        ${state.categorias.map(c => `<option value="${c}" ${c === savedCat ? 'selected' : ''}>${c}</option>`).join("")}
       </select>
 
       <label class="form-label">Insumo / Producto</label>
@@ -833,13 +841,13 @@ function renderRegistro() {
       <label class="form-label">Cantidad</label>
       <div class="input-row">
         <input type="number" class="form-input" id="inputCantidad" placeholder="0" min="0" step="0.5"
-               style="flex:1;margin-bottom:0" oninput="validateForm()">
+               style="flex:1;margin-bottom:0" oninput="validateForm()" value="${savedCant}">
         <span class="input-unit" id="unitLabel">—</span>
       </div>
 
       <div style="margin-top:14px">
         <label class="form-label">Nota (opcional)</label>
-        <input type="text" class="form-input" id="inputNota" placeholder="Observación..." style="margin-bottom:0">
+        <input type="text" class="form-input" id="inputNota" placeholder="Observación..." style="margin-bottom:0" value="${savedNota.replace(/"/g, '&quot;')}">
       </div>
 
       <div style="display:flex; gap:8px; margin-top:16px;">
@@ -853,6 +861,23 @@ function renderRegistro() {
     </div>
     ${pendingHtml}
   `;
+
+  // Restaurar categoría y producto después del render
+  if (savedCat) {
+    const selCat = document.getElementById("selCategoria");
+    if (selCat && selCat.value === savedCat) {
+      const filtered = state.products.filter(p => p.categoria === savedCat);
+      const selProd = document.getElementById("selProducto");
+      selProd.disabled = false;
+      selProd.innerHTML = '<option value="">Seleccionar...</option>' +
+        filtered.map(p => `<option value="${p.nombre}" ${p.nombre === savedProd ? 'selected' : ''}>${p.nombre}</option>`).join("");
+      if (savedProd) {
+        const prod = state.products.find(p => p.nombre === savedProd);
+        document.getElementById("unitLabel").textContent = prod?.unidad || "—";
+      }
+    }
+  }
+  validateForm();
 }
 
 function seleccionarTipo(tipo) {
@@ -1389,14 +1414,24 @@ function addToList() {
 
   if (!state.pendingItems) state.pendingItems = [];
   state.pendingItems.push({ responsable: resp, producto: prod, cantidad: cant, tipo, nota, unidad });
+  state.lastResponsable = resp;
 
   if (navigator.vibrate) navigator.vibrate(30);
   showToast(`Agregado: ${prod} × ${cant}`, "success");
 
-  // Re-render mostrando la lista; restaurar responsable
+  // Limpiar solo producto/categoría/cantidad/nota en el estado de restauración
+  // renderRegistro va a restaurar resp y tipo automáticamente
+  // Forzamos savedCat/savedProd vacíos limpiando los elementos ANTES de renderizar
+  const selCat = document.getElementById("selCategoria");
+  const selProd = document.getElementById("selProducto");
+  const inputCant = document.getElementById("inputCantidad");
+  const inputNota = document.getElementById("inputNota");
+  if (selCat) selCat.value = "";
+  if (selProd) { selProd.value = ""; selProd.disabled = true; }
+  if (inputCant) inputCant.value = "";
+  if (inputNota) inputNota.value = "";
+
   renderRegistro();
-  const selResp = document.getElementById("selResponsable");
-  if (selResp) selResp.value = resp;
 }
 
 function removeFromList(index) {
