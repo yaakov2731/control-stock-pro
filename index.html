@@ -1045,6 +1045,8 @@ function applyConfigForLocal(localId, config) {
   // Re-renderizar
   if (state.activeTab === "registro") renderRegistro();
   if (state.activeTab === "config")   renderConfig();
+  // Siempre actualizar el contador de productos en registro (aunque no esté activo)
+  updateProductCount();
 }
 
 // ============================================================
@@ -1141,9 +1143,12 @@ function renderRegistro() {
           <span class="search-icon">🔍</span>
           <input type="text" class="search-input" id="productSearch"
                  placeholder="Buscar producto por nombre o SKU..."
-                 oninput="onProductSearch()" autocomplete="off">
+                 oninput="onProductSearch()"
+                 onfocus="onProductSearchFocus()"
+                 autocomplete="off">
           <div class="search-results hidden" id="searchResults"></div>
         </div>
+        <div id="productCount" style="font-size:11px; color:var(--text-dim); text-align:center; margin:-8px 0 10px;"></div>
 
         <!-- Confirm panel (hidden until product selected) -->
         <div class="confirm-panel hidden" id="confirmPanel">
@@ -1194,6 +1199,14 @@ function renderRegistro() {
   }
 
   updateCartUI();
+  updateProductCount();
+}
+
+function updateProductCount() {
+  const el = document.getElementById("productCount");
+  if (!el) return;
+  const n = state.products.length;
+  el.textContent = n > 0 ? `${n} productos en catálogo` : (state.configLoaded ? "Sin productos" : "Cargando catálogo...");
 }
 
 function seleccionarTipo(tipo) {
@@ -2024,12 +2037,14 @@ function escHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function onProductSearch() {
-  const query     = (document.getElementById("productSearch")?.value || "").toLowerCase().trim();
+function onProductSearchFocus() {
+  const query = (document.getElementById("productSearch")?.value || "").trim();
+  if (!query) renderProductResults("");
+}
+
+function renderProductResults(query) {
   const resultsEl = document.getElementById("searchResults");
   if (!resultsEl) return;
-
-  if (!query) { resultsEl.classList.add("hidden"); return; }
 
   if (!state.products.length) {
     resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Cargando productos...</div>`;
@@ -2037,11 +2052,14 @@ function onProductSearch() {
     return;
   }
 
-  lastSearchMatches = state.products.filter(p =>
-    p.nombre.toLowerCase().includes(query) ||
-    (p.sku && p.sku.toLowerCase().includes(query)) ||
-    (p.categoria && p.categoria.toLowerCase().includes(query))
-  ).slice(0, 8);
+  const q = query.toLowerCase().trim();
+  lastSearchMatches = q
+    ? state.products.filter(p =>
+        p.nombre.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.categoria && p.categoria.toLowerCase().includes(q))
+      ).slice(0, 10)
+    : state.products.slice(0, 15);
 
   if (lastSearchMatches.length === 0) {
     resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Sin resultados para "${escHtml(query)}"</div>`;
@@ -2057,6 +2075,11 @@ function onProductSearch() {
     `).join("");
   }
   resultsEl.classList.remove("hidden");
+}
+
+function onProductSearch() {
+  const query = document.getElementById("productSearch")?.value || "";
+  renderProductResults(query);
 }
 
 function selectSearchResult(idx) {
