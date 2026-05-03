@@ -2026,6 +2026,14 @@ function handleScannedCode(code) {
 // ============================================================
 // PRODUCT SEARCH
 // ============================================================
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function onProductSearch() {
   const query     = (document.getElementById("productSearch")?.value || "").toLowerCase().trim();
   const resultsEl = document.getElementById("searchResults");
@@ -2040,7 +2048,7 @@ function onProductSearch() {
   ).slice(0, 8);
 
   if (matches.length === 0) {
-    resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Sin resultados para "${query}"</div>`;
+    resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Sin resultados para "${escHtml(query)}"</div>`;
   } else {
     resultsEl.innerHTML = matches.map(p => `
       <div class="search-result-item" onclick="selectSearchResult('${(p.sku || "").replace(/'/g, "\\'")}', '${p.nombre.replace(/'/g, "\\'")}')">
