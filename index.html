@@ -2136,6 +2136,113 @@ function handleAddToCart() {
   hideConfirmPanel();
   if (window.innerWidth >= 768) openCartDrawer();
 }
+
+// ============================================================
+// SKU AUTO-GENERATION
+// ============================================================
+function autoGenerateSku(productName) {
+  const existing = state.products
+    .map(p => p.sku || "")
+    .filter(s => /^CSP-\d+$/.test(s))
+    .map(s => parseInt(s.replace("CSP-", ""), 10));
+  const max = existing.length > 0 ? Math.max(...existing) : 0;
+  return "CSP-" + String(max + 1).padStart(3, "0");
+}
+
+async function persistSku(product) {
+  if (!product.sku || !product.nombre || !state.localId) return;
+  try {
+    await fetch(SCRIPT_URL, {
+      method:  "POST",
+      mode:    "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action:   "actualizarSKU",
+        local:    state.localId,
+        sku:      product.sku,
+        producto: product.nombre,
+      })
+    });
+    const cacheKey = "csp_config_" + state.localId;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+      if (cached.productos && cached.productos[state.localId]) {
+        const p = cached.productos[state.localId].find(cp => cp.nombre === product.nombre);
+        if (p) p.sku = product.sku;
+        localStorage.setItem(cacheKey, JSON.stringify(cached));
+      }
+    } catch(e) {}
+  } catch(err) {
+    console.warn("persistSku failed:", err);
+  }
+}
+
+// ============================================================
+// BARCODE MODAL (unknown barcode assignment)
+// ============================================================
+function showBarcodeModal(code) {
+  barcodeModalCode    = code;
+  barcodeModalProduct = null;
+  document.getElementById("barcodeModalCode").textContent = "Código: " + code;
+  document.getElementById("barcodeModalSearch").value = "";
+  document.getElementById("barcodeModalResults").classList.add("hidden");
+  document.getElementById("barcodeModalAssignBtn").disabled = true;
+  document.getElementById("barcodeModal").classList.remove("hidden");
+}
+
+function closeBarcodeModal() {
+  barcodeModalCode    = "";
+  barcodeModalProduct = null;
+  document.getElementById("barcodeModal").classList.add("hidden");
+}
+
+function onBarcodeModalSearch() {
+  const query     = (document.getElementById("barcodeModalSearch")?.value || "").toLowerCase().trim();
+  const resultsEl = document.getElementById("barcodeModalResults");
+  if (!resultsEl) return;
+  if (!query) { resultsEl.classList.add("hidden"); return; }
+
+  const matches = state.products.filter(p =>
+    p.nombre.toLowerCase().includes(query)
+  ).slice(0, 6);
+
+  resultsEl.innerHTML = matches.map(p => `
+    <div class="search-result-item" onclick="selectBarcodeProduct('${(p.sku || "").replace(/'/g, "\\'")}','${p.nombre.replace(/'/g, "\\'")}')">
+      <div>
+        <div class="search-result-name">${p.nombre}</div>
+        <div class="search-result-meta">${p.categoria || ""}</div>
+      </div>
+    </div>
+  `).join("");
+  resultsEl.classList.remove("hidden");
+}
+
+function selectBarcodeProduct(sku, nombre) {
+  barcodeModalProduct = state.products.find(p =>
+    sku ? p.sku === sku : p.nombre === nombre
+  ) || { nombre, sku };
+  document.getElementById("barcodeModalSearch").value = nombre;
+  document.getElementById("barcodeModalResults").classList.add("hidden");
+  document.getElementById("barcodeModalAssignBtn").disabled = false;
+}
+
+async function assignBarcode() {
+  if (!barcodeModalProduct || !barcodeModalCode) return;
+
+  const btn = document.getElementById("barcodeModalAssignBtn");
+  if (btn) btn.disabled = true;
+
+  barcodeModalProduct.sku = barcodeModalCode;
+  const p = state.products.find(cp => cp.nombre === barcodeModalProduct.nombre);
+  if (p) p.sku = barcodeModalCode;
+
+  await persistSku(barcodeModalProduct);
+  showToast(`✅ ${barcodeModalCode} asignado a ${barcodeModalProduct.nombre}`, "success");
+  closeBarcodeModal();
+
+  const product = state.products.find(cp => cp.nombre === barcodeModalProduct.nombre);
+  if (product) showConfirmPanel(product);
+}
 </script>
 
 </body>
