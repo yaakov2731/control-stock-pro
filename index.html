@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
 <title>Control Stock PRO</title>
+<script src="https://unpkg.com/@zxing/browser@0.1.5/dist/zxing-browser.min.js"></script>
 <style>
 :root {
   --primary: #1e40af;
@@ -1960,6 +1961,66 @@ function handleSaveAllCart() {
 
   const drawer = document.getElementById("cartDrawer");
   if (drawer) { state.cartOpen = false; drawer.classList.remove("open"); }
+}
+
+// ============================================================
+// SCANNER (ZXing)
+// ============================================================
+async function openScanner() {
+  const overlay = document.getElementById("scannerOverlay");
+  const video   = document.getElementById("scannerVideo");
+  const status  = document.getElementById("scannerStatus");
+
+  if (!overlay || !video) return;
+  overlay.classList.remove("hidden");
+  status.textContent = "Iniciando cámara...";
+
+  try {
+    const hints = new Map();
+    const formats = [
+      ZXingBrowser.BarcodeFormat.EAN_13,
+      ZXingBrowser.BarcodeFormat.EAN_8,
+      ZXingBrowser.BarcodeFormat.CODE_128,
+      ZXingBrowser.BarcodeFormat.CODE_39,
+      ZXingBrowser.BarcodeFormat.QR_CODE,
+    ];
+    hints.set(ZXingBrowser.DecodeHintType.POSSIBLE_FORMATS, formats);
+
+    scannerReader = new ZXingBrowser.BrowserMultiFormatReader(hints);
+    status.textContent = "Apuntá la cámara al código de barras";
+
+    await scannerReader.decodeFromVideoDevice(null, video, (result, err) => {
+      if (result) {
+        const code = result.getText();
+        closeScanner();
+        handleScannedCode(code);
+      }
+    });
+  } catch(err) {
+    status.textContent = "Error de cámara: " + err.message;
+    console.error("Scanner error:", err);
+  }
+}
+
+function closeScanner() {
+  const overlay = document.getElementById("scannerOverlay");
+  if (overlay) overlay.classList.add("hidden");
+  if (scannerReader) {
+    try { scannerReader.reset(); } catch(e) {}
+    scannerReader = null;
+  }
+}
+
+function handleScannedCode(code) {
+  if (!code) return;
+  const product = state.products.find(p =>
+    p.sku && p.sku.trim().toLowerCase() === code.trim().toLowerCase()
+  );
+  if (product) {
+    showConfirmPanel(product);
+  } else {
+    showBarcodeModal(code);
+  }
 }
 </script>
 
