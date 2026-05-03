@@ -834,6 +834,50 @@ select option { background: #0f172a; color: #e2e8f0; }
   </div>
 </div>
 
+<!-- SCANNER OVERLAY -->
+<div class="scanner-overlay hidden" id="scannerOverlay">
+  <div class="scanner-video-wrap">
+    <video id="scannerVideo" autoplay muted playsinline></video>
+    <div class="scanner-corners"><span></span></div>
+    <div class="scanner-line"></div>
+  </div>
+  <div class="scanner-status" id="scannerStatus">Apuntá la cámara al código de barras</div>
+  <button class="scanner-close-btn" onclick="closeScanner()">Cancelar</button>
+</div>
+
+<!-- UNKNOWN BARCODE MODAL -->
+<div class="modal-overlay hidden" id="barcodeModal">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Código no reconocido</div>
+    <div class="modal-subtitle" id="barcodeModalCode">Barcode: —</div>
+    <label class="form-label">¿A qué producto corresponde?</label>
+    <div class="search-wrap" style="margin-bottom:12px;">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="barcodeModalSearch"
+             placeholder="Buscar producto..." oninput="onBarcodeModalSearch()">
+      <div class="search-results hidden" id="barcodeModalResults"></div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="save-btn" id="barcodeModalAssignBtn" disabled
+              onclick="assignBarcode()" style="margin:0; flex:1; padding:12px;">
+        ASIGNAR
+      </button>
+      <button onclick="closeBarcodeModal()"
+              style="flex:1; padding:12px; border-radius:12px; border:1px solid var(--border-light);
+                     background:transparent; color:var(--text-muted); cursor:pointer;
+                     font-family:inherit; font-size:14px; font-weight:600;">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CART FLOAT BUTTON (mobile only) -->
+<button class="cart-float-btn hidden" id="cartFloatBtn" onclick="toggleCartDrawer()">
+  🛒
+  <span class="cart-badge" id="cartFloatBadge"></span>
+</button>
+
 <!-- TABS BAR -->
 <div class="tabs-bar hidden" id="tabsBar">
   <button class="tab-btn active" data-tab="registro" onclick="switchTab('registro')">
