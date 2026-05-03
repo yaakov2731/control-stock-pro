@@ -945,6 +945,9 @@ let barcodeModalCode    = "";
 // INIT
 // ============================================================
 document.addEventListener("DOMContentLoaded", async () => {
+  if (typeof ZXingBrowser === "undefined" && typeof ZXing !== "undefined") {
+    window.ZXingBrowser = ZXing;
+  }
   initLocalGrid();
   document.getElementById("mainContent").classList.add("hidden");
   document.getElementById("tabsBar").classList.add("hidden");
