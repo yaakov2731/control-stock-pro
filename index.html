@@ -2022,6 +2022,120 @@ function handleScannedCode(code) {
     showBarcodeModal(code);
   }
 }
+
+// ============================================================
+// PRODUCT SEARCH
+// ============================================================
+function onProductSearch() {
+  const query     = (document.getElementById("productSearch")?.value || "").toLowerCase().trim();
+  const resultsEl = document.getElementById("searchResults");
+  if (!resultsEl) return;
+
+  if (!query) { resultsEl.classList.add("hidden"); return; }
+
+  const matches = state.products.filter(p =>
+    p.nombre.toLowerCase().includes(query) ||
+    (p.sku && p.sku.toLowerCase().includes(query)) ||
+    (p.categoria && p.categoria.toLowerCase().includes(query))
+  ).slice(0, 8);
+
+  if (matches.length === 0) {
+    resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Sin resultados para "${query}"</div>`;
+  } else {
+    resultsEl.innerHTML = matches.map(p => `
+      <div class="search-result-item" onclick="selectSearchResult('${(p.sku || "").replace(/'/g, "\\'")}', '${p.nombre.replace(/'/g, "\\'")}')">
+        <div>
+          <div class="search-result-name">${p.nombre}</div>
+          <div class="search-result-meta">${p.categoria || ""} · ${p.unidad || "u"}</div>
+        </div>
+        <div class="search-result-sku">${p.sku || "sin SKU"}</div>
+      </div>
+    `).join("");
+  }
+  resultsEl.classList.remove("hidden");
+}
+
+function selectSearchResult(sku, nombre) {
+  const product = state.products.find(p =>
+    sku ? p.sku === sku : p.nombre === nombre
+  );
+  if (!product) return;
+
+  const searchInput = document.getElementById("productSearch");
+  const resultsEl   = document.getElementById("searchResults");
+  if (searchInput) searchInput.value = "";
+  if (resultsEl)   resultsEl.classList.add("hidden");
+
+  showConfirmPanel(product);
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".search-wrap")) {
+    document.getElementById("searchResults")?.classList.add("hidden");
+    document.getElementById("barcodeModalResults")?.classList.add("hidden");
+  }
+});
+
+// ============================================================
+// CONFIRM PANEL
+// ============================================================
+function showConfirmPanel(product) {
+  state.selectedProduct = product;
+  const panel = document.getElementById("confirmPanel");
+  if (!panel) return;
+
+  document.getElementById("confirmProductName").textContent = product.nombre;
+  document.getElementById("confirmProductMeta").textContent =
+    (product.sku || "sin SKU") + " · " + (product.unidad || "u") + (product.categoria ? " · " + product.categoria : "");
+  document.getElementById("confirmQty").value = "1";
+  document.getElementById("confirmNota").value = "";
+  updateConfirmTipoButtons();
+  panel.classList.remove("hidden");
+  document.getElementById("confirmQty").focus();
+}
+
+function hideConfirmPanel() {
+  state.selectedProduct = null;
+  document.getElementById("confirmPanel")?.classList.add("hidden");
+}
+
+function updateConfirmTipoButtons() {
+  const tipo = state.tipoSeleccionado;
+  const btnE = document.getElementById("confirmTipoEntrada");
+  const btnS = document.getElementById("confirmTipoSalida");
+  if (btnE) btnE.className = "tipo-btn" + (tipo === "Entrada" ? " active-entrada" : "");
+  if (btnS) btnS.className = "tipo-btn" + (tipo === "Salida"  ? " active-salida"  : "");
+}
+
+function confirmQtyStep(delta) {
+  const input = document.getElementById("confirmQty");
+  if (!input) return;
+  const current = parseFloat(input.value) || 0;
+  const next = Math.max(0, current + delta);
+  input.value = next % 1 === 0 ? String(next) : next.toFixed(1);
+}
+
+function handleAddToCart() {
+  const product = state.selectedProduct;
+  if (!product) return;
+
+  const cantRaw = parseFloat(document.getElementById("confirmQty")?.value) || 0;
+  const nota    = document.getElementById("confirmNota")?.value.trim() || "";
+  const tipo    = state.tipoSeleccionado;
+
+  if (cantRaw <= 0) { showToast("Cantidad debe ser mayor a 0", "error"); return; }
+
+  const sku = product.sku || autoGenerateSku(product.nombre);
+  if (!product.sku) {
+    product.sku = sku;
+    persistSku(product);
+  }
+
+  cartAdd({ producto: product.nombre, sku, cantidad: cantRaw, tipo, nota, unidad: product.unidad || "u" });
+  showToast(`Agregado: ${product.nombre} × ${cantRaw}`, "success");
+  hideConfirmPanel();
+  if (window.innerWidth >= 768) openCartDrawer();
+}
 </script>
 
 </body>
