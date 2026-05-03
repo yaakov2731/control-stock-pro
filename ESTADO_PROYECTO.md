@@ -1,6 +1,10 @@
 # Control Stock PRO — Estado del Proyecto
-**Fecha de último estado funcional:** 07/03/2026  
-**Estado:** ✅ FUNCIONANDO
+
+> ⚠️ PENDIENTE: Deployar nueva versión de Apps Script (Code_final_v2.gs) para activar
+> la acción `actualizarSKU` y el fix de productos sin SKU. Ver instrucciones en README.
+
+**Fecha de último estado funcional:** 03/05/2026  
+**Estado:** ✅ FUNCIONANDO — v2 Scanner+Cart
 
 ---
 
@@ -60,8 +64,14 @@
 ## Apps Script — Versión activa
 
 **Archivo:** `Code_final_v2.gs`  
-**Versión deployment:** 31 (07/03/2026 11:35 a.m.)  
+**Versión deployment:** 31 (07/03/2026 11:35 a.m.) — ver tabla abajo  
 **Cuenta:** yaakovrubi@gmail.com
+
+### Historial de versiones
+| Versión | Fecha | Descripción |
+|---|---|---|
+| v31 | 07/03/2026 | Versión base con Telegram notifications |
+| v4 | 03/05/2026 | v2 Scanner+Cart deployment |
 
 ### Acciones disponibles (doPost)
 | Acción | Descripción |
@@ -71,6 +81,7 @@
 | `getProducts` | Obtiene catálogo de productos de un local |
 | `agregarRegistro` | Guarda un registro de stock en la pestaña del local |
 | `testTelegram` | Envía mensaje de prueba a Telegram |
+| `actualizarSKU` | Asigna/actualiza el SKU de un producto en el catálogo |
 
 ### Telegram
 - **Bot Token:** `8667407358:AAF9VdTQ9IMffKDFbvLPw-2cCqmED-OgzpE`
