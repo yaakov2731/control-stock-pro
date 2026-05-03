@@ -168,7 +168,7 @@ function getProducts(localId) {
         categoria: String(r[2]).trim(),
         unidad:   String(r[3] || "u").trim(),
         minimo:   Number(r[4]) || 0,
-        activo:   r[5] === true || String(r[5]).toLowerCase() === "true"
+        activo:   String(r[5]).toLowerCase() !== "false"
       }))
       .filter(p => p.activo !== false);
 
