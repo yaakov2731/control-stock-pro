@@ -2232,15 +2232,17 @@ async function assignBarcode() {
   const btn = document.getElementById("barcodeModalAssignBtn");
   if (btn) btn.disabled = true;
 
+  const assignedName = barcodeModalProduct.nombre;
+
   barcodeModalProduct.sku = barcodeModalCode;
-  const p = state.products.find(cp => cp.nombre === barcodeModalProduct.nombre);
+  const p = state.products.find(cp => cp.nombre === assignedName);
   if (p) p.sku = barcodeModalCode;
 
-  await persistSku(barcodeModalProduct);
-  showToast(`✅ ${barcodeModalCode} asignado a ${barcodeModalProduct.nombre}`, "success");
+  await persistSku({ nombre: assignedName, sku: barcodeModalCode });
+  showToast(`✅ ${barcodeModalCode} asignado a ${assignedName}`, "success");
   closeBarcodeModal();
 
-  const product = state.products.find(cp => cp.nombre === barcodeModalProduct.nombre);
+  const product = state.products.find(cp => cp.nombre === assignedName);
   if (product) showConfirmPanel(product);
 }
 </script>
