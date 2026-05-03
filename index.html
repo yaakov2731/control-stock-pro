@@ -940,6 +940,8 @@ let isSyncing    = false;
 let scannerReader = null;
 let barcodeModalProduct = null;
 let barcodeModalCode    = "";
+let lastSearchMatches   = [];
+let lastBarcodeMatches  = [];
 
 // ============================================================
 // INIT
@@ -2026,32 +2028,36 @@ function onProductSearch() {
 
   if (!query) { resultsEl.classList.add("hidden"); return; }
 
-  const matches = state.products.filter(p =>
+  if (!state.products.length) {
+    resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Cargando productos...</div>`;
+    resultsEl.classList.remove("hidden");
+    return;
+  }
+
+  lastSearchMatches = state.products.filter(p =>
     p.nombre.toLowerCase().includes(query) ||
     (p.sku && p.sku.toLowerCase().includes(query)) ||
     (p.categoria && p.categoria.toLowerCase().includes(query))
   ).slice(0, 8);
 
-  if (matches.length === 0) {
+  if (lastSearchMatches.length === 0) {
     resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Sin resultados para "${escHtml(query)}"</div>`;
   } else {
-    resultsEl.innerHTML = matches.map(p => `
-      <div class="search-result-item" onclick="selectSearchResult('${(p.sku || "").replace(/'/g, "\\'")}', '${p.nombre.replace(/'/g, "\\'")}')">
+    resultsEl.innerHTML = lastSearchMatches.map((p, i) => `
+      <div class="search-result-item" data-idx="${i}">
         <div>
-          <div class="search-result-name">${p.nombre}</div>
-          <div class="search-result-meta">${p.categoria || ""} · ${p.unidad || "u"}</div>
+          <div class="search-result-name">${escHtml(p.nombre)}</div>
+          <div class="search-result-meta">${escHtml(p.categoria || "")} · ${escHtml(p.unidad || "u")}</div>
         </div>
-        <div class="search-result-sku">${p.sku || "sin SKU"}</div>
+        <div class="search-result-sku">${escHtml(p.sku || "sin SKU")}</div>
       </div>
     `).join("");
   }
   resultsEl.classList.remove("hidden");
 }
 
-function selectSearchResult(sku, nombre) {
-  const product = state.products.find(p =>
-    sku ? p.sku === sku : p.nombre === nombre
-  );
+function selectSearchResult(idx) {
+  const product = lastSearchMatches[idx];
   if (!product) return;
 
   const searchInput = document.getElementById("productSearch");
@@ -2063,7 +2069,20 @@ function selectSearchResult(sku, nombre) {
 }
 
 document.addEventListener("click", e => {
-  if (!e.target.closest(".search-wrap")) {
+  // Handle search result selection
+  const resultItem = e.target.closest(".search-result-item[data-idx]");
+  if (resultItem) {
+    const idx = parseInt(resultItem.dataset.idx, 10);
+    // Barcode modal results
+    if (resultItem.closest("#barcodeModalResults")) {
+      selectBarcodeProductByIdx(idx);
+    } else {
+      selectSearchResult(idx);
+    }
+    return;
+  }
+  // Close dropdowns when clicking outside
+  if (!e.target.closest(".search-wrap") && !e.target.closest("#barcodeModal")) {
     document.getElementById("searchResults")?.classList.add("hidden");
     document.getElementById("barcodeModalResults")?.classList.add("hidden");
   }
@@ -2195,26 +2214,26 @@ function onBarcodeModalSearch() {
   if (!resultsEl) return;
   if (!query) { resultsEl.classList.add("hidden"); return; }
 
-  const matches = state.products.filter(p =>
+  lastBarcodeMatches = state.products.filter(p =>
     p.nombre.toLowerCase().includes(query)
   ).slice(0, 6);
 
-  resultsEl.innerHTML = matches.map(p => `
-    <div class="search-result-item" onclick="selectBarcodeProduct('${(p.sku || "").replace(/'/g, "\\'")}','${p.nombre.replace(/'/g, "\\'")}')">
+  resultsEl.innerHTML = lastBarcodeMatches.map((p, i) => `
+    <div class="search-result-item" data-idx="${i}">
       <div>
-        <div class="search-result-name">${p.nombre}</div>
-        <div class="search-result-meta">${p.categoria || ""}</div>
+        <div class="search-result-name">${escHtml(p.nombre)}</div>
+        <div class="search-result-meta">${escHtml(p.categoria || "")}</div>
       </div>
     </div>
   `).join("");
   resultsEl.classList.remove("hidden");
 }
 
-function selectBarcodeProduct(sku, nombre) {
-  barcodeModalProduct = state.products.find(p =>
-    sku ? p.sku === sku : p.nombre === nombre
-  ) || { nombre, sku };
-  document.getElementById("barcodeModalSearch").value = nombre;
+function selectBarcodeProductByIdx(idx) {
+  const p = lastBarcodeMatches[idx];
+  if (!p) return;
+  barcodeModalProduct = p;
+  document.getElementById("barcodeModalSearch").value = p.nombre;
   document.getElementById("barcodeModalResults").classList.add("hidden");
   document.getElementById("barcodeModalAssignBtn").disabled = false;
 }
