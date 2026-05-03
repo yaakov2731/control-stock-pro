@@ -81,6 +81,9 @@ function doPost(e) {
       case "removeProduct":
         result = removeProduct(data.localId, data.sku);
         break;
+      case "actualizarSKU":
+        result = actualizarSKU(data.localId || data.local, data.sku, data.producto);
+        break;
       default:
         result = { ok: true, action: action, version: "3.1" };
     }
@@ -157,15 +160,15 @@ function getProducts(localId) {
 
     const data = sheet.getRange(4, 1, lastRow - 3, 6).getValues();
     const products = data
-      .filter(r => r[0] && String(r[0]).trim())
+      .filter(r => r[1] && String(r[1]).trim())   // solo requiere nombre
       .map(r => ({
-        sku:      String(r[0]).trim(),
+        sku:      String(r[0] || "").trim(),       // puede ser vacío
         nombre:   String(r[1]).trim(),
         producto: String(r[1]).trim(),
         categoria: String(r[2]).trim(),
         unidad:   String(r[3] || "u").trim(),
         minimo:   Number(r[4]) || 0,
-        activo:   r[5] === true || String(r[5]).toLowerCase() === "true"
+        activo:   String(r[5]).toLowerCase() !== "false"
       }))
       .filter(p => p.activo !== false);
 
@@ -230,6 +233,36 @@ function getConfig(localId) {
   });
 
   return result;
+}
+
+// ============================================================
+// ACTUALIZAR SKU DE UN PRODUCTO (barcode assignment)
+// ============================================================
+function actualizarSKU(localId, sku, nombreProducto) {
+  try {
+    const sheetName = LOCAL_MAP[localId];
+    if (!sheetName) return { ok: false, error: "Local no válido: " + localId };
+
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return { ok: false, error: "Pestaña no encontrada: " + sheetName };
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 4) return { ok: false, error: "Sin productos" };
+
+    const data = sheet.getRange(4, 1, lastRow - 3, 2).getValues();
+    for (let i = 0; i < data.length; i++) {
+      const nombre = String(data[i][1] || "").trim();
+      if (nombre.toLowerCase() === nombreProducto.toLowerCase()) {
+        sheet.getRange(4 + i, 1).setValue(sku);
+        return { ok: true, sku: sku, producto: nombreProducto, fila: 4 + i };
+      }
+    }
+    return { ok: false, error: "Producto no encontrado: " + nombreProducto };
+  } catch(err) {
+    Logger.log("actualizarSKU error: " + err);
+    return { ok: false, error: err.toString() };
+  }
 }
 
 // ============================================================

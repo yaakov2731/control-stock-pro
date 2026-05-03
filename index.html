@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
 <title>Control Stock PRO</title>
+<script src="https://unpkg.com/@zxing/browser@0.1.5/dist/zxing-browser.min.js" defer></script>
 <style>
 :root {
   --primary: #1e40af;
@@ -30,6 +31,9 @@
   --text-dim: #64748b;
   --border: rgba(255,255,255,0.08);
   --border-light: rgba(255,255,255,0.12);
+  --cart-bg: #0d1526;
+  --scanner-overlay: rgba(0,0,0,0.92);
+  --badge-bg: #ef4444;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -89,6 +93,58 @@ body {
 .status-dot.syncing { background: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse 1s infinite; }
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* ===== SCANNER OVERLAY ===== */
+.scanner-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: var(--scanner-overlay);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.scanner-overlay.hidden { display: none; }
+
+.scanner-video-wrap {
+  position: relative; width: 100%; max-width: 400px;
+  aspect-ratio: 1; overflow: hidden; border-radius: 16px;
+}
+.scanner-video-wrap video {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.scanner-corners {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.scanner-corners::before, .scanner-corners::after,
+.scanner-corners span::before, .scanner-corners span::after {
+  content: ""; position: absolute; width: 32px; height: 32px;
+  border-color: #3b82f6; border-style: solid;
+}
+.scanner-corners::before  { top:12px; left:12px;  border-width: 3px 0 0 3px; }
+.scanner-corners::after   { top:12px; right:12px; border-width: 3px 3px 0 0; }
+.scanner-corners span::before  { bottom:12px; left:12px;  border-width: 0 0 3px 3px; }
+.scanner-corners span::after   { bottom:12px; right:12px; border-width: 0 3px 3px 0; }
+
+.scanner-line {
+  position: absolute; left: 16px; right: 16px; height: 2px;
+  background: #3b82f6; opacity: 0.8;
+  animation: scanLine 2s ease-in-out infinite;
+  box-shadow: 0 0 8px #3b82f6;
+}
+@keyframes scanLine {
+  0%   { top: 16px; }
+  50%  { top: calc(100% - 16px); }
+  100% { top: 16px; }
+}
+
+.scanner-status {
+  margin-top: 20px; color: #94a3b8; font-size: 14px; font-weight: 600;
+  letter-spacing: 1px; text-align: center;
+}
+.scanner-close-btn {
+  margin-top: 24px; padding: 12px 32px; border-radius: 12px;
+  border: 1px solid var(--border-light); background: transparent;
+  color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+}
 
 /* ===== SECTIONS ===== */
 .section { padding: 0 16px; margin-bottom: 16px; }
@@ -538,6 +594,214 @@ select option { background: #0f172a; color: #e2e8f0; }
   transition: all 0.15s ease;
 }
 .save-all-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(30,58,138,0.6), 0 6px 14px rgba(30,64,175,0.2); }
+
+/* ===== CART ===== */
+.cart-badge {
+  position: absolute; top: -6px; right: -6px;
+  background: var(--badge-bg); color: #fff;
+  font-size: 10px; font-weight: 800; line-height: 1;
+  padding: 3px 5px; border-radius: 10px; min-width: 18px; text-align: center;
+  display: none;
+}
+.cart-badge.show { display: block; }
+.cart-badge.pop  { animation: badgePop 0.3s ease; }
+@keyframes badgePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+.cart-drawer {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: var(--cart-bg); border-top: 1px solid var(--border-light);
+  border-radius: 20px 20px 0 0;
+  transform: translateY(calc(100% - 56px));
+  transition: transform 0.3s ease;
+  max-height: 70vh; display: flex; flex-direction: column;
+}
+.cart-drawer.open { transform: translateY(0); }
+.cart-drawer-handle {
+  padding: 12px 16px; display: flex; align-items: center;
+  justify-content: space-between; cursor: pointer; flex-shrink: 0;
+}
+.cart-drawer-handle-bar {
+  width: 36px; height: 4px; background: #334155; border-radius: 2px;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.cart-handle-title {
+  font-size: 13px; font-weight: 700; color: var(--primary-light);
+  padding-top: 4px;
+}
+.cart-handle-count {
+  font-size: 12px; color: var(--text-muted);
+}
+.cart-items-list {
+  overflow-y: auto; flex: 1; padding: 0 16px;
+}
+.cart-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.cart-item:last-child { border-bottom: none; }
+.cart-item-info { flex: 1; min-width: 0; }
+.cart-item-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cart-item-detail { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.cart-item-remove {
+  background: none; border: none; color: #ef4444; cursor: pointer;
+  font-size: 16px; padding: 4px 8px; flex-shrink: 0;
+}
+.cart-save-btn {
+  margin: 12px 16px 16px; padding: 14px;
+  background: linear-gradient(135deg, var(--success-dark), var(--success));
+  color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 1px;
+  border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+  box-shadow: 0 6px 0 rgba(21,128,61,0.5); text-transform: uppercase;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.cart-save-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(21,128,61,0.5); }
+.cart-save-btn:disabled { background: #1f2937; color: #6b7280; box-shadow: none; }
+
+@media (min-width: 768px) {
+  .cart-drawer {
+    position: sticky; top: 16px;
+    transform: none !important;
+    border-radius: 16px; border: 1px solid var(--border-light);
+    max-height: calc(100vh - 32px);
+    height: fit-content; min-height: 200px;
+  }
+  .cart-drawer-handle-bar { display: none; }
+  .cart-drawer-handle { cursor: default; }
+}
+
+/* ===== REGISTRO V2 LAYOUT ===== */
+.registro-v2-layout {
+  display: flex; flex-direction: column; gap: 0;
+  padding: 0 16px;
+}
+
+@media (min-width: 768px) {
+  .app { max-width: 100%; }
+  .registro-v2-layout {
+    flex-direction: row; align-items: flex-start; gap: 16px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .registro-v2-main { flex: 1; min-width: 0; }
+  .registro-v2-cart { width: 320px; flex-shrink: 0; }
+}
+
+@media (min-width: 1024px) {
+  .registro-v2-cart { width: 360px; }
+}
+
+.scan-btn {
+  width: 100%; padding: 20px; border-radius: 16px; border: none;
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+  color: #fff; font-size: 16px; font-weight: 700; letter-spacing: 1px;
+  cursor: pointer; font-family: inherit; display: flex; align-items: center;
+  justify-content: center; gap: 12px; margin-bottom: 12px;
+  box-shadow: 0 8px 0 rgba(30,64,175,0.5), 0 12px 28px rgba(30,64,175,0.3);
+  transition: all 0.15s; text-transform: uppercase;
+}
+.scan-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(30,64,175,0.5); }
+.scan-btn-icon { font-size: 28px; }
+
+.search-wrap { position: relative; margin-bottom: 12px; }
+.search-input {
+  width: 100%; padding: 14px 16px 14px 44px;
+  border-radius: 12px; border: 1px solid var(--border-light);
+  background: var(--bg-input); color: var(--text); font-size: 15px;
+  font-family: inherit; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-input:focus {
+  border-color: rgba(30,64,175,0.5); box-shadow: 0 0 0 3px rgba(30,64,175,0.1);
+}
+.search-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); font-size: 18px; pointer-events: none;
+}
+.search-results {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: #1e293b; border: 1px solid var(--border-light); border-radius: 12px;
+  overflow: hidden; margin-top: 4px; max-height: 240px; overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.search-result-item {
+  padding: 12px 16px; cursor: pointer; display: flex; align-items: center;
+  justify-content: space-between; transition: background 0.15s;
+}
+.search-result-item:hover, .search-result-item:focus { background: #2d3f5a; }
+.search-result-name { font-size: 14px; color: var(--text); font-weight: 500; }
+.search-result-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.search-result-sku { font-size: 11px; color: var(--text-dim); }
+
+.confirm-panel {
+  background: linear-gradient(180deg, var(--bg-card), rgba(15,23,42,0.8));
+  border-radius: 16px; padding: 18px; border: 1px solid var(--border-light);
+  margin-bottom: 12px;
+}
+.confirm-product-name { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.confirm-product-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+.qty-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.qty-btn {
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--border-light);
+  background: var(--bg-card); color: var(--text); font-size: 22px; font-weight: 700;
+  cursor: pointer; font-family: inherit; display: flex; align-items: center;
+  justify-content: center; transition: background 0.15s;
+}
+.qty-btn:active { background: #1e3a5f; }
+.qty-input {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #3b82f6;
+  background: var(--bg-input); color: var(--text); font-size: 20px;
+  font-weight: 700; text-align: center; font-family: inherit; outline: none;
+}
+.add-to-cart-btn {
+  width: 100%; padding: 14px; border-radius: 12px; border: none;
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+  color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 1px;
+  cursor: pointer; font-family: inherit; text-transform: uppercase;
+  transition: all 0.15s; box-shadow: 0 6px 0 rgba(30,64,175,0.5);
+}
+.add-to-cart-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(30,64,175,0.5); }
+
+.cart-float-btn {
+  position: fixed; bottom: 20px; right: 16px; z-index: 150;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--success-dark), var(--success));
+  border: none; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 24px;
+  box-shadow: 0 4px 16px rgba(22,163,74,0.5);
+}
+.cart-float-btn.hidden { display: none; }
+@media (min-width: 768px) { .cart-float-btn { display: none !important; } }
+
+.skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #2d3f5a 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite; border-radius: 8px; height: 14px;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.7); display: flex;
+  align-items: flex-end; justify-content: center;
+}
+.modal-overlay.hidden { display: none; }
+.modal-box {
+  background: #1e293b; border-radius: 20px 20px 0 0;
+  padding: 24px; width: 100%; max-width: 480px;
+  border-top: 1px solid var(--border-light);
+}
+@media (min-width: 768px) {
+  .modal-overlay { align-items: center; }
+  .modal-box { border-radius: 20px; max-width: 440px; }
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.modal-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
 </style>
 </head>
 <body>
@@ -570,6 +834,50 @@ select option { background: #0f172a; color: #e2e8f0; }
     Docks del Puerto • Tigre
   </div>
 </div>
+
+<!-- SCANNER OVERLAY -->
+<div class="scanner-overlay hidden" id="scannerOverlay">
+  <div class="scanner-video-wrap">
+    <video id="scannerVideo" autoplay muted playsinline></video>
+    <div class="scanner-corners"><span></span></div>
+    <div class="scanner-line"></div>
+  </div>
+  <div class="scanner-status" id="scannerStatus">Apuntá la cámara al código de barras</div>
+  <button class="scanner-close-btn" onclick="closeScanner()">Cancelar</button>
+</div>
+
+<!-- UNKNOWN BARCODE MODAL -->
+<div class="modal-overlay hidden" id="barcodeModal">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Código no reconocido</div>
+    <div class="modal-subtitle" id="barcodeModalCode">Barcode: —</div>
+    <label class="form-label">¿A qué producto corresponde?</label>
+    <div class="search-wrap" style="margin-bottom:12px;">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="barcodeModalSearch"
+             placeholder="Buscar producto..." oninput="onBarcodeModalSearch()">
+      <div class="search-results hidden" id="barcodeModalResults"></div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="save-btn" id="barcodeModalAssignBtn" disabled
+              onclick="assignBarcode()" style="margin:0; flex:1; padding:12px;">
+        ASIGNAR
+      </button>
+      <button onclick="closeBarcodeModal()"
+              style="flex:1; padding:12px; border-radius:12px; border:1px solid var(--border-light);
+                     background:transparent; color:var(--text-muted); cursor:pointer;
+                     font-family:inherit; font-size:14px; font-weight:600;">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CART FLOAT BUTTON (mobile only) -->
+<button class="cart-float-btn hidden" id="cartFloatBtn" onclick="toggleCartDrawer()">
+  🛒
+  <span class="cart-badge" id="cartFloatBadge"></span>
+</button>
 
 <!-- TABS BAR -->
 <div class="tabs-bar hidden" id="tabsBar">
@@ -616,19 +924,30 @@ const state = {
   products:     [],
   responsables: [],
   categorias:   [],
-  tipoSeleccionado: "Entrada",  // "Entrada" | "Salida"
+  tipoSeleccionado: "Entrada",
   configLoaded: false,
   pendingItems: [],
+  // v2 cart
+  cart:            [],
+  selectedProduct: null,
+  cartOpen:        false,
+  lastResponsable: "",
 };
 
 // Cola de registros pendientes de envío (optimistic)
 let pendingQueue = [];
 let isSyncing    = false;
+let scannerReader = null;
+let barcodeModalProduct = null;
+let barcodeModalCode    = "";
 
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener("DOMContentLoaded", async () => {
+  if (typeof ZXingBrowser === "undefined" && typeof ZXing !== "undefined") {
+    window.ZXingBrowser = ZXing;
+  }
   initLocalGrid();
   document.getElementById("mainContent").classList.add("hidden");
   document.getElementById("tabsBar").classList.add("hidden");
@@ -758,6 +1077,8 @@ function selectLocal(id, name) {
   state.responsables     = [];
   state.categorias       = [];
   state.products         = [];
+  state.cart             = [];
+  loadCartFromStorage();
 
   document.querySelectorAll(".local-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.id === id);
@@ -781,103 +1102,106 @@ function selectLocal(id, name) {
 // RENDER: REGISTRO
 // ============================================================
 function renderRegistro() {
-  if (!state.pendingItems) state.pendingItems = [];
+  if (!state.localId) return;
+  const savedResp = document.getElementById("selResponsableV2")?.value || state.lastResponsable || "";
 
-  // Guardar valores actuales del formulario antes de re-renderizar
-  const savedResp = document.getElementById("selResponsable")?.value || state.lastResponsable || "";
-  const savedCat  = document.getElementById("selCategoria")?.value || "";
-  const savedProd = document.getElementById("selProducto")?.value || "";
-  const savedCant = document.getElementById("inputCantidad")?.value || "";
-  const savedNota = document.getElementById("inputNota")?.value || "";
-
-  const pendingHtml = state.pendingItems.length > 0 ? `
-    <div class="card" style="margin-top:0; padding-top:16px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <span style="font-size:13px; font-weight:700; color:var(--primary-light);">📋 Lista (${state.pendingItems.length} producto${state.pendingItems.length !== 1 ? 's' : ''})</span>
-        <button onclick="clearPendingList()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; font-weight:600; padding:4px 8px; border-radius:8px; border:1px solid var(--border);">Limpiar</button>
-      </div>
-      ${state.pendingItems.map((item, i) => `
-        <div class="pending-item">
-          <div class="pending-item-info">
-            <div class="pending-item-name">${item.tipo === 'Entrada' ? '📥' : '📤'} ${item.producto}</div>
-            <div class="pending-item-detail">${item.cantidad}${item.unidad ? ' ' + item.unidad : ''} · ${item.tipo}${item.nota ? ' · ' + item.nota : ''}</div>
-          </div>
-          <button class="pending-item-remove" onclick="removeFromList(${i})">✕</button>
-        </div>
-      `).join("")}
-      <button class="save-all-btn" onclick="handleSaveAll()">
-        GUARDAR TODO (${state.pendingItems.length})
-      </button>
-    </div>
-  ` : "";
+  const responsableHtml = state.configLoaded
+    ? `<select class="form-select" id="selResponsableV2"
+         onchange="state.lastResponsable=this.value" style="margin-bottom:0">
+         <option value="">Seleccionar responsable...</option>
+         ${state.responsables.map(r => `<option value="${r}" ${r === savedResp ? "selected" : ""}>${r}</option>`).join("")}
+       </select>`
+    : `<div class="skeleton" style="height:48px; border-radius:12px;"></div>`;
 
   document.getElementById("tabRegistro").innerHTML = `
-    <div class="card">
-      <label class="form-label">Responsable</label>
-      <select class="form-select" id="selResponsable" onchange="validateForm()">
-        <option value="">Seleccionar...</option>
-        ${state.responsables.map(r => `<option value="${r}" ${r === savedResp ? 'selected' : ''}>${r}</option>`).join("")}
-      </select>
+    <div class="registro-v2-layout">
 
-      <label class="form-label">Tipo de Movimiento</label>
-      <div class="tipo-row">
-        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Entrada' ? 'active-entrada' : ''}"
-                onclick="seleccionarTipo('Entrada')">📥 Entrada</button>
-        <button type="button" class="tipo-btn ${state.tipoSeleccionado === 'Salida' ? 'active-salida' : ''}"
-                onclick="seleccionarTipo('Salida')">📤 Salida</button>
-      </div>
+      <!-- MAIN COLUMN -->
+      <div class="registro-v2-main">
 
-      <label class="form-label">Categoría</label>
-      <select class="form-select" id="selCategoria" onchange="onCategoriaChange()">
-        <option value="">Seleccionar...</option>
-        ${state.categorias.map(c => `<option value="${c}" ${c === savedCat ? 'selected' : ''}>${c}</option>`).join("")}
-      </select>
+        <!-- Responsable -->
+        <div class="card" style="margin:0 0 12px; padding:14px 16px;">
+          <label class="form-label" style="margin-bottom:8px;">Responsable</label>
+          ${responsableHtml}
+        </div>
 
-      <label class="form-label">Insumo / Producto</label>
-      <select class="form-select" id="selProducto" disabled onchange="onProductoChange()">
-        <option value="">Primero elegí categoría...</option>
-      </select>
+        <!-- Tipo movimiento -->
+        <div class="card" style="margin:0 0 12px; padding:14px 16px;">
+          <label class="form-label" style="margin-bottom:8px;">Tipo de Movimiento</label>
+          <div class="tipo-row" style="margin:0">
+            <button type="button" class="tipo-btn ${state.tipoSeleccionado === "Entrada" ? "active-entrada" : ""}"
+                    id="confirmTipoEntrada"
+                    onclick="seleccionarTipo('Entrada')">📥 Entrada</button>
+            <button type="button" class="tipo-btn ${state.tipoSeleccionado === "Salida" ? "active-salida" : ""}"
+                    id="confirmTipoSalida"
+                    onclick="seleccionarTipo('Salida')">📤 Salida</button>
+          </div>
+        </div>
 
-      <label class="form-label">Cantidad</label>
-      <div class="input-row">
-        <input type="number" class="form-input" id="inputCantidad" placeholder="0" min="0" step="0.5"
-               style="flex:1;margin-bottom:0" oninput="validateForm()" value="${savedCant}">
-        <span class="input-unit" id="unitLabel">—</span>
-      </div>
-
-      <div style="margin-top:14px">
-        <label class="form-label">Nota (opcional)</label>
-        <input type="text" class="form-input" id="inputNota" placeholder="Observación..." style="margin-bottom:0" value="${savedNota.replace(/"/g, '&quot;')}">
-      </div>
-
-      <div style="display:flex; gap:8px; margin-top:16px;">
-        <button class="save-btn" id="btnSave" disabled onclick="handleSave()" style="flex:1; margin:0;">
-          GUARDAR
+        <!-- Scan button -->
+        <button class="scan-btn" onclick="openScanner()">
+          <span class="scan-btn-icon">📷</span>
+          ESCANEAR CÓDIGO DE BARRAS
         </button>
-        <button class="add-list-btn" id="btnAddToList" disabled onclick="addToList()">
-          + LISTA
-        </button>
+
+        <!-- Search -->
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="productSearch"
+                 placeholder="Buscar producto por nombre o SKU..."
+                 oninput="onProductSearch()" autocomplete="off">
+          <div class="search-results hidden" id="searchResults"></div>
+        </div>
+
+        <!-- Confirm panel (hidden until product selected) -->
+        <div class="confirm-panel hidden" id="confirmPanel">
+          <div class="confirm-product-name" id="confirmProductName">—</div>
+          <div class="confirm-product-meta" id="confirmProductMeta">—</div>
+          <div class="qty-row">
+            <button class="qty-btn" onclick="confirmQtyStep(-1)">−</button>
+            <input type="number" class="qty-input" id="confirmQty"
+                   value="1" min="0" step="0.5">
+            <button class="qty-btn" onclick="confirmQtyStep(1)">+</button>
+          </div>
+          <input type="text" class="form-input" id="confirmNota"
+                 placeholder="Nota (opcional)..." style="margin-bottom:12px;">
+          <button class="add-to-cart-btn" onclick="handleAddToCart()">
+            ✓ AGREGAR AL CARRITO
+          </button>
+          <button onclick="hideConfirmPanel()"
+                  style="width:100%; margin-top:8px; padding:10px; background:none;
+                         border:1px solid var(--border); border-radius:10px; color:var(--text-muted);
+                         cursor:pointer; font-family:inherit; font-size:13px;">
+            Cancelar
+          </button>
+        </div>
+
       </div>
+
+      <!-- CART COLUMN (tablet/PC side panel) -->
+      <div class="registro-v2-cart" id="cartColumn">
+        <div class="cart-drawer" id="cartDrawer">
+          <div class="cart-drawer-handle" onclick="toggleCartDrawer()">
+            <div class="cart-drawer-handle-bar"></div>
+            <span class="cart-handle-title" id="cartHandleTitle">🛒 Carrito vacío</span>
+          </div>
+          <div class="cart-items-list" id="cartItemsList"></div>
+          <button class="cart-save-btn" id="cartSaveBtn" disabled onclick="handleSaveAllCart()">
+            GUARDAR TODO
+          </button>
+        </div>
+      </div>
+
     </div>
-    ${pendingHtml}
   `;
 
-  // Restaurar categoría y producto después del render
-  if (savedCat) {
-    const selCat = document.getElementById("selCategoria");
-    if (selCat && selCat.value === savedCat) {
-      const filtered = state.products.filter(p => p.categoria === savedCat);
-      const selProd = document.getElementById("selProducto");
-      selProd.disabled = false;
-      selProd.innerHTML = '<option value="">Seleccionar...</option>' +
-        filtered.map(p => `<option value="${p.nombre}" ${p.nombre === savedProd ? 'selected' : ''}>${p.nombre}</option>`).join("");
-      if (savedProd) {
-        const prod = state.products.find(p => p.nombre === savedProd);
-        document.getElementById("unitLabel").textContent = prod?.unidad || "—";
-      }
-    }
+  // Restore responsable
+  if (savedResp) {
+    const sel = document.getElementById("selResponsableV2");
+    if (sel && !sel.value) sel.value = savedResp;
   }
-  validateForm();
+
+  updateCartUI();
 }
 
 function seleccionarTipo(tipo) {
@@ -1511,6 +1835,431 @@ function showToast(msg, type = "info") {
     toast.style.transition = "opacity 0.3s";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+// ============================================================
+// CART
+// ============================================================
+function cartAdd(item) {
+  state.cart.push(item);
+  saveCartToStorage();
+  updateCartUI();
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function cartRemove(index) {
+  state.cart.splice(index, 1);
+  saveCartToStorage();
+  updateCartUI();
+}
+
+function cartClear() {
+  state.cart = [];
+  saveCartToStorage();
+  updateCartUI();
+}
+
+function saveCartToStorage() {
+  try {
+    localStorage.setItem("csp_cart_" + (state.localId || ""), JSON.stringify(state.cart));
+  } catch(e) {}
+}
+
+function loadCartFromStorage() {
+  try {
+    const saved = localStorage.getItem("csp_cart_" + (state.localId || ""));
+    if (saved) state.cart = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function updateCartUI() {
+  const count    = state.cart.length;
+  const badge    = document.getElementById("cartFloatBadge");
+  const floatBtn = document.getElementById("cartFloatBtn");
+
+  if (badge) {
+    badge.textContent = count;
+    if (count > 0) {
+      badge.classList.add("show");
+      badge.classList.remove("pop");
+      void badge.offsetWidth;
+      badge.classList.add("pop");
+    } else {
+      badge.classList.remove("show");
+    }
+  }
+  if (floatBtn) floatBtn.classList.toggle("hidden", count === 0);
+
+  renderCartContents();
+}
+
+function toggleCartDrawer() {
+  const drawer = document.getElementById("cartDrawer");
+  if (!drawer) return;
+  state.cartOpen = !state.cartOpen;
+  drawer.classList.toggle("open", state.cartOpen);
+}
+
+function openCartDrawer() {
+  const drawer = document.getElementById("cartDrawer");
+  if (!drawer) return;
+  state.cartOpen = true;
+  drawer.classList.add("open");
+}
+
+function renderCartContents() {
+  const listEl      = document.getElementById("cartItemsList");
+  const saveBtn     = document.getElementById("cartSaveBtn");
+  const handleTitle = document.getElementById("cartHandleTitle");
+  if (!listEl) return;
+
+  const count = state.cart.length;
+  if (handleTitle) handleTitle.textContent = count > 0
+    ? `🛒 Carrito (${count} producto${count !== 1 ? "s" : ""})`
+    : "🛒 Carrito vacío";
+
+  if (saveBtn) saveBtn.disabled = count === 0;
+
+  if (count === 0) {
+    listEl.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">Agregá productos para empezar</div>`;
+    return;
+  }
+
+  listEl.innerHTML = state.cart.map((item, i) => `
+    <div class="cart-item">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.tipo === "Entrada" ? "📥" : "📤"} ${item.producto}</div>
+        <div class="cart-item-detail">${item.cantidad}${item.unidad ? " " + item.unidad : ""} · ${item.tipo}${item.nota ? " · " + item.nota : ""}</div>
+      </div>
+      <button class="cart-item-remove" onclick="cartRemove(${i})">✕</button>
+    </div>
+  `).join("");
+}
+
+function handleSaveAllCart() {
+  if (state.cart.length === 0) return;
+
+  const resp = document.getElementById("selResponsableV2")?.value || state.lastResponsable;
+  if (!resp) {
+    showToast("Elegí un responsable primero", "error");
+    return;
+  }
+
+  const items = [...state.cart];
+  cartClear();
+
+  items.forEach(item => {
+    const registro = {
+      action:      "agregarRegistro",
+      local:       state.localId,
+      localName:   state.localName,
+      responsable: resp,
+      producto:    item.producto,
+      cantidad:    item.cantidad,
+      tipo:        item.tipo,
+      nota:        item.nota || "",
+      _ts:         new Date().toISOString()
+    };
+    guardarEnHistorialLocal(registro);
+    encolarEnvio(registro);
+  });
+
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+  showToast(`✅ ${items.length} registro${items.length !== 1 ? "s" : ""} guardado${items.length !== 1 ? "s" : ""}!`, "success");
+
+  const drawer = document.getElementById("cartDrawer");
+  if (drawer) { state.cartOpen = false; drawer.classList.remove("open"); }
+}
+
+// ============================================================
+// SCANNER (ZXing)
+// ============================================================
+async function openScanner() {
+  const overlay = document.getElementById("scannerOverlay");
+  const video   = document.getElementById("scannerVideo");
+  const status  = document.getElementById("scannerStatus");
+
+  if (!overlay || !video) return;
+  overlay.classList.remove("hidden");
+  status.textContent = "Iniciando cámara...";
+
+  try {
+    const hints = new Map();
+    const formats = [
+      ZXingBrowser.BarcodeFormat.EAN_13,
+      ZXingBrowser.BarcodeFormat.EAN_8,
+      ZXingBrowser.BarcodeFormat.CODE_128,
+      ZXingBrowser.BarcodeFormat.CODE_39,
+      ZXingBrowser.BarcodeFormat.QR_CODE,
+    ];
+    hints.set(ZXingBrowser.DecodeHintType.POSSIBLE_FORMATS, formats);
+
+    scannerReader = new ZXingBrowser.BrowserMultiFormatReader(hints);
+    status.textContent = "Apuntá la cámara al código de barras";
+
+    await scannerReader.decodeFromVideoDevice(null, video, (result, err) => {
+      if (result) {
+        const code = result.getText();
+        closeScanner();
+        handleScannedCode(code);
+      }
+    });
+  } catch(err) {
+    status.textContent = "Error de cámara: " + err.message;
+    console.error("Scanner error:", err);
+  }
+}
+
+function closeScanner() {
+  const overlay = document.getElementById("scannerOverlay");
+  if (overlay) overlay.classList.add("hidden");
+  if (scannerReader) {
+    try { scannerReader.reset(); } catch(e) {}
+    scannerReader = null;
+  }
+}
+
+function handleScannedCode(code) {
+  if (!code) return;
+  const product = state.products.find(p =>
+    p.sku && p.sku.trim().toLowerCase() === code.trim().toLowerCase()
+  );
+  if (product) {
+    showConfirmPanel(product);
+  } else {
+    showBarcodeModal(code);
+  }
+}
+
+// ============================================================
+// PRODUCT SEARCH
+// ============================================================
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function onProductSearch() {
+  const query     = (document.getElementById("productSearch")?.value || "").toLowerCase().trim();
+  const resultsEl = document.getElementById("searchResults");
+  if (!resultsEl) return;
+
+  if (!query) { resultsEl.classList.add("hidden"); return; }
+
+  const matches = state.products.filter(p =>
+    p.nombre.toLowerCase().includes(query) ||
+    (p.sku && p.sku.toLowerCase().includes(query)) ||
+    (p.categoria && p.categoria.toLowerCase().includes(query))
+  ).slice(0, 8);
+
+  if (matches.length === 0) {
+    resultsEl.innerHTML = `<div class="search-result-item" style="color:var(--text-muted)">Sin resultados para "${escHtml(query)}"</div>`;
+  } else {
+    resultsEl.innerHTML = matches.map(p => `
+      <div class="search-result-item" onclick="selectSearchResult('${(p.sku || "").replace(/'/g, "\\'")}', '${p.nombre.replace(/'/g, "\\'")}')">
+        <div>
+          <div class="search-result-name">${p.nombre}</div>
+          <div class="search-result-meta">${p.categoria || ""} · ${p.unidad || "u"}</div>
+        </div>
+        <div class="search-result-sku">${p.sku || "sin SKU"}</div>
+      </div>
+    `).join("");
+  }
+  resultsEl.classList.remove("hidden");
+}
+
+function selectSearchResult(sku, nombre) {
+  const product = state.products.find(p =>
+    sku ? p.sku === sku : p.nombre === nombre
+  );
+  if (!product) return;
+
+  const searchInput = document.getElementById("productSearch");
+  const resultsEl   = document.getElementById("searchResults");
+  if (searchInput) searchInput.value = "";
+  if (resultsEl)   resultsEl.classList.add("hidden");
+
+  showConfirmPanel(product);
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".search-wrap")) {
+    document.getElementById("searchResults")?.classList.add("hidden");
+    document.getElementById("barcodeModalResults")?.classList.add("hidden");
+  }
+});
+
+// ============================================================
+// CONFIRM PANEL
+// ============================================================
+function showConfirmPanel(product) {
+  state.selectedProduct = product;
+  const panel = document.getElementById("confirmPanel");
+  if (!panel) return;
+
+  document.getElementById("confirmProductName").textContent = product.nombre;
+  document.getElementById("confirmProductMeta").textContent =
+    (product.sku || "sin SKU") + " · " + (product.unidad || "u") + (product.categoria ? " · " + product.categoria : "");
+  document.getElementById("confirmQty").value = "1";
+  document.getElementById("confirmNota").value = "";
+  updateConfirmTipoButtons();
+  panel.classList.remove("hidden");
+  document.getElementById("confirmQty").focus();
+}
+
+function hideConfirmPanel() {
+  state.selectedProduct = null;
+  document.getElementById("confirmPanel")?.classList.add("hidden");
+}
+
+function updateConfirmTipoButtons() {
+  const tipo = state.tipoSeleccionado;
+  const btnE = document.getElementById("confirmTipoEntrada");
+  const btnS = document.getElementById("confirmTipoSalida");
+  if (btnE) btnE.className = "tipo-btn" + (tipo === "Entrada" ? " active-entrada" : "");
+  if (btnS) btnS.className = "tipo-btn" + (tipo === "Salida"  ? " active-salida"  : "");
+}
+
+function confirmQtyStep(delta) {
+  const input = document.getElementById("confirmQty");
+  if (!input) return;
+  const current = parseFloat(input.value) || 0;
+  const next = Math.max(0, current + delta);
+  input.value = next % 1 === 0 ? String(next) : next.toFixed(1);
+}
+
+function handleAddToCart() {
+  const product = state.selectedProduct;
+  if (!product) return;
+
+  const cantRaw = parseFloat(document.getElementById("confirmQty")?.value) || 0;
+  const nota    = document.getElementById("confirmNota")?.value.trim() || "";
+  const tipo    = state.tipoSeleccionado;
+
+  if (cantRaw <= 0) { showToast("Cantidad debe ser mayor a 0", "error"); return; }
+
+  const sku = product.sku || autoGenerateSku(product.nombre);
+  if (!product.sku) {
+    product.sku = sku;
+    persistSku(product);
+  }
+
+  cartAdd({ producto: product.nombre, sku, cantidad: cantRaw, tipo, nota, unidad: product.unidad || "u" });
+  showToast(`Agregado: ${product.nombre} × ${cantRaw}`, "success");
+  hideConfirmPanel();
+  if (window.innerWidth >= 768) openCartDrawer();
+}
+
+// ============================================================
+// SKU AUTO-GENERATION
+// ============================================================
+function autoGenerateSku(productName) {
+  const existing = state.products
+    .map(p => p.sku || "")
+    .filter(s => /^CSP-\d+$/.test(s))
+    .map(s => parseInt(s.replace("CSP-", ""), 10));
+  const max = existing.length > 0 ? Math.max(...existing) : 0;
+  return "CSP-" + String(max + 1).padStart(3, "0");
+}
+
+async function persistSku(product) {
+  if (!product.sku || !product.nombre || !state.localId) return;
+  try {
+    await fetch(SCRIPT_URL, {
+      method:  "POST",
+      mode:    "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action:   "actualizarSKU",
+        local:    state.localId,
+        sku:      product.sku,
+        producto: product.nombre,
+      })
+    });
+    const cacheKey = "csp_config_" + state.localId;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+      if (cached.productos && cached.productos[state.localId]) {
+        const p = cached.productos[state.localId].find(cp => cp.nombre === product.nombre);
+        if (p) p.sku = product.sku;
+        localStorage.setItem(cacheKey, JSON.stringify(cached));
+      }
+    } catch(e) {}
+  } catch(err) {
+    console.warn("persistSku failed:", err);
+  }
+}
+
+// ============================================================
+// BARCODE MODAL (unknown barcode assignment)
+// ============================================================
+function showBarcodeModal(code) {
+  barcodeModalCode    = code;
+  barcodeModalProduct = null;
+  document.getElementById("barcodeModalCode").textContent = "Código: " + code;
+  document.getElementById("barcodeModalSearch").value = "";
+  document.getElementById("barcodeModalResults").classList.add("hidden");
+  document.getElementById("barcodeModalAssignBtn").disabled = true;
+  document.getElementById("barcodeModal").classList.remove("hidden");
+}
+
+function closeBarcodeModal() {
+  barcodeModalCode    = "";
+  barcodeModalProduct = null;
+  document.getElementById("barcodeModal").classList.add("hidden");
+}
+
+function onBarcodeModalSearch() {
+  const query     = (document.getElementById("barcodeModalSearch")?.value || "").toLowerCase().trim();
+  const resultsEl = document.getElementById("barcodeModalResults");
+  if (!resultsEl) return;
+  if (!query) { resultsEl.classList.add("hidden"); return; }
+
+  const matches = state.products.filter(p =>
+    p.nombre.toLowerCase().includes(query)
+  ).slice(0, 6);
+
+  resultsEl.innerHTML = matches.map(p => `
+    <div class="search-result-item" onclick="selectBarcodeProduct('${(p.sku || "").replace(/'/g, "\\'")}','${p.nombre.replace(/'/g, "\\'")}')">
+      <div>
+        <div class="search-result-name">${p.nombre}</div>
+        <div class="search-result-meta">${p.categoria || ""}</div>
+      </div>
+    </div>
+  `).join("");
+  resultsEl.classList.remove("hidden");
+}
+
+function selectBarcodeProduct(sku, nombre) {
+  barcodeModalProduct = state.products.find(p =>
+    sku ? p.sku === sku : p.nombre === nombre
+  ) || { nombre, sku };
+  document.getElementById("barcodeModalSearch").value = nombre;
+  document.getElementById("barcodeModalResults").classList.add("hidden");
+  document.getElementById("barcodeModalAssignBtn").disabled = false;
+}
+
+async function assignBarcode() {
+  if (!barcodeModalProduct || !barcodeModalCode) return;
+
+  const btn = document.getElementById("barcodeModalAssignBtn");
+  if (btn) btn.disabled = true;
+
+  const assignedName = barcodeModalProduct.nombre;
+
+  barcodeModalProduct.sku = barcodeModalCode;
+  const p = state.products.find(cp => cp.nombre === assignedName);
+  if (p) p.sku = barcodeModalCode;
+
+  await persistSku({ nombre: assignedName, sku: barcodeModalCode });
+  showToast(`✅ ${barcodeModalCode} asignado a ${assignedName}`, "success");
+  closeBarcodeModal();
+
+  const product = state.products.find(cp => cp.nombre === assignedName);
+  if (product) showConfirmPanel(product);
 }
 </script>
 
