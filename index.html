@@ -923,14 +923,22 @@ const state = {
   products:     [],
   responsables: [],
   categorias:   [],
-  tipoSeleccionado: "Entrada",  // "Entrada" | "Salida"
+  tipoSeleccionado: "Entrada",
   configLoaded: false,
   pendingItems: [],
+  // v2 cart
+  cart:            [],
+  selectedProduct: null,
+  cartOpen:        false,
+  lastResponsable: "",
 };
 
 // Cola de registros pendientes de envío (optimistic)
 let pendingQueue = [];
 let isSyncing    = false;
+let scannerReader = null;
+let barcodeModalProduct = null;
+let barcodeModalCode    = "";
 
 // ============================================================
 // INIT
@@ -1818,6 +1826,140 @@ function showToast(msg, type = "info") {
     toast.style.transition = "opacity 0.3s";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+// ============================================================
+// CART
+// ============================================================
+function cartAdd(item) {
+  state.cart.push(item);
+  saveCartToStorage();
+  updateCartUI();
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function cartRemove(index) {
+  state.cart.splice(index, 1);
+  saveCartToStorage();
+  updateCartUI();
+}
+
+function cartClear() {
+  state.cart = [];
+  saveCartToStorage();
+  updateCartUI();
+}
+
+function saveCartToStorage() {
+  try {
+    localStorage.setItem("csp_cart_" + (state.localId || ""), JSON.stringify(state.cart));
+  } catch(e) {}
+}
+
+function loadCartFromStorage() {
+  try {
+    const saved = localStorage.getItem("csp_cart_" + (state.localId || ""));
+    if (saved) state.cart = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function updateCartUI() {
+  const count    = state.cart.length;
+  const badge    = document.getElementById("cartFloatBadge");
+  const floatBtn = document.getElementById("cartFloatBtn");
+
+  if (badge) {
+    badge.textContent = count;
+    if (count > 0) {
+      badge.classList.add("show");
+      badge.classList.remove("pop");
+      void badge.offsetWidth;
+      badge.classList.add("pop");
+    } else {
+      badge.classList.remove("show");
+    }
+  }
+  if (floatBtn) floatBtn.classList.toggle("hidden", count === 0);
+
+  renderCartContents();
+}
+
+function toggleCartDrawer() {
+  const drawer = document.getElementById("cartDrawer");
+  if (!drawer) return;
+  state.cartOpen = !state.cartOpen;
+  drawer.classList.toggle("open", state.cartOpen);
+}
+
+function openCartDrawer() {
+  const drawer = document.getElementById("cartDrawer");
+  if (!drawer) return;
+  state.cartOpen = true;
+  drawer.classList.add("open");
+}
+
+function renderCartContents() {
+  const listEl      = document.getElementById("cartItemsList");
+  const saveBtn     = document.getElementById("cartSaveBtn");
+  const handleTitle = document.getElementById("cartHandleTitle");
+  if (!listEl) return;
+
+  const count = state.cart.length;
+  if (handleTitle) handleTitle.textContent = count > 0
+    ? `🛒 Carrito (${count} producto${count !== 1 ? "s" : ""})`
+    : "🛒 Carrito vacío";
+
+  if (saveBtn) saveBtn.disabled = count === 0;
+
+  if (count === 0) {
+    listEl.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">Agregá productos para empezar</div>`;
+    return;
+  }
+
+  listEl.innerHTML = state.cart.map((item, i) => `
+    <div class="cart-item">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.tipo === "Entrada" ? "📥" : "📤"} ${item.producto}</div>
+        <div class="cart-item-detail">${item.cantidad}${item.unidad ? " " + item.unidad : ""} · ${item.tipo}${item.nota ? " · " + item.nota : ""}</div>
+      </div>
+      <button class="cart-item-remove" onclick="cartRemove(${i})">✕</button>
+    </div>
+  `).join("");
+}
+
+function handleSaveAllCart() {
+  if (state.cart.length === 0) return;
+
+  const resp = document.getElementById("selResponsableV2")?.value || state.lastResponsable;
+  if (!resp) {
+    showToast("Elegí un responsable primero", "error");
+    return;
+  }
+
+  const items = [...state.cart];
+  cartClear();
+
+  items.forEach(item => {
+    const registro = {
+      action:      "agregarRegistro",
+      local:       state.localId,
+      localName:   state.localName,
+      responsable: resp,
+      producto:    item.producto,
+      cantidad:    item.cantidad,
+      tipo:        item.tipo,
+      nota:        item.nota || "",
+      _ts:         new Date().toISOString()
+    };
+    guardarEnHistorialLocal(registro);
+    encolarEnvio(registro);
+  });
+
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+  showToast(`✅ ${items.length} registro${items.length !== 1 ? "s" : ""} guardado${items.length !== 1 ? "s" : ""}!`, "success");
+
+  const drawer = document.getElementById("cartDrawer");
+  if (drawer) { state.cartOpen = false; drawer.classList.remove("open"); }
 }
 </script>
 
