@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
 <title>Control Stock PRO</title>
-<script src="https://unpkg.com/@zxing/browser@0.1.5/dist/zxing-browser.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.2/umd/index.min.js"></script>
 <style>
 :root {
   --primary: #1e40af;
@@ -945,9 +945,6 @@ let barcodeModalCode    = "";
 // INIT
 // ============================================================
 document.addEventListener("DOMContentLoaded", async () => {
-  if (typeof ZXingBrowser === "undefined" && typeof ZXing !== "undefined") {
-    window.ZXingBrowser = ZXing;
-  }
   initLocalGrid();
   document.getElementById("mainContent").classList.add("hidden");
   document.getElementById("tabsBar").classList.add("hidden");
@@ -990,7 +987,7 @@ async function loadGlobalConfig() {
 
 async function loadConfigForLocal(localId) {
   // 1. Intentar caché local (5 min)
-  const cacheKey = "csp_config_" + localId;
+  const cacheKey = "csp_cfg2_" + localId;
   const cached   = localStorage.getItem(cacheKey);
   if (cached) {
     try {
@@ -1012,19 +1009,9 @@ async function loadConfigForLocal(localId) {
     const merged = {
       responsables: configData.responsables || [],
       categorias: configData.categorias || [],
-      productos: {},
+      productos: configData.productos || {},
       _ts: Date.now()
     };
-    
-    // ✅ Usar los productos que ya vienen en configData
-    if (configData.productos && configData.productos.length > 0) {
-      merged.productos[localId] = configData.productos.map(p => ({
-        sku: p.sku,
-        nombre: p.producto || p.nombre,
-        categoria: p.categoria,
-        unidad: p.unidad
-      }));
-    }
     
     localStorage.setItem(cacheKey, JSON.stringify(merged));
     applyConfigForLocal(localId, merged);
@@ -1592,7 +1579,7 @@ function addResponsable() {
   state.responsables.push(valor);
     
   // ✅ Actualizar caché
-  const cacheKey = "csp_config_" + state.localId;
+  const cacheKey = "csp_cfg2_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
     const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
@@ -1614,7 +1601,7 @@ function removeResponsable(valor) {
   state.responsables = state.responsables.filter(r => r !== valor);
     
   // ✅ Actualizar caché
-  const cacheKey = "csp_config_" + state.localId;
+  const cacheKey = "csp_cfg2_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
     const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
@@ -1636,7 +1623,7 @@ function addCategoria() {
   state.categorias.push(valor);
     
   // ✅ Actualizar caché
-  const cacheKey = "csp_config_" + state.localId;
+  const cacheKey = "csp_cfg2_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
     const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
@@ -1657,7 +1644,7 @@ function removeCategoria(valor) {
   state.categorias = state.categorias.filter(c => c !== valor);
     
   // ✅ Actualizar caché
-  const cacheKey = "csp_config_" + state.localId;
+  const cacheKey = "csp_cfg2_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
     const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
@@ -1683,7 +1670,7 @@ function addProduct() {
   state.products.push(newProd);
     
   // ✅ Actualizar caché del localStorage
-  const cacheKey = "csp_config_" + state.localId;
+  const cacheKey = "csp_cfg2_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
     const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
@@ -1705,7 +1692,7 @@ function removeProduct(nombre) {
   state.products = state.products.filter(p => p.nombre !== nombre);
     
   // ✅ Actualizar caché
-  const cacheKey = "csp_config_" + state.localId;
+  const cacheKey = "csp_cfg2_" + state.localId;
   try {
     const cached = localStorage.getItem(cacheKey);
     const parsed = cached ? JSON.parse(cached) : { responsables: [], categorias: [], productos: {}, _ts: 0 };
@@ -1984,20 +1971,10 @@ async function openScanner() {
   status.textContent = "Iniciando cámara...";
 
   try {
-    const hints = new Map();
-    const formats = [
-      ZXingBrowser.BarcodeFormat.EAN_13,
-      ZXingBrowser.BarcodeFormat.EAN_8,
-      ZXingBrowser.BarcodeFormat.CODE_128,
-      ZXingBrowser.BarcodeFormat.CODE_39,
-      ZXingBrowser.BarcodeFormat.QR_CODE,
-    ];
-    hints.set(ZXingBrowser.DecodeHintType.POSSIBLE_FORMATS, formats);
-
-    scannerReader = new ZXingBrowser.BrowserMultiFormatReader(hints);
+    scannerReader = new ZXing.BrowserMultiFormatReader();
     status.textContent = "Apuntá la cámara al código de barras";
 
-    await scannerReader.decodeFromVideoDevice(null, video, (result, err) => {
+    await scannerReader.decodeFromVideoDevice(undefined, video, (result, err) => {
       if (result) {
         const code = result.getText();
         closeScanner();
@@ -2179,7 +2156,7 @@ async function persistSku(product) {
         producto: product.nombre,
       })
     });
-    const cacheKey = "csp_config_" + state.localId;
+    const cacheKey = "csp_cfg2_" + state.localId;
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || "{}");
       if (cached.productos && cached.productos[state.localId]) {
