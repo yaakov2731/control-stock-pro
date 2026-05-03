@@ -849,19 +849,22 @@ select option { background: #0f172a; color: #e2e8f0; }
 <!-- UNKNOWN BARCODE MODAL -->
 <div class="modal-overlay hidden" id="barcodeModal">
   <div class="modal-box">
-    <div class="modal-title">⚠️ Código no reconocido</div>
-    <div class="modal-subtitle" id="barcodeModalCode">Barcode: —</div>
-    <label class="form-label">¿A qué producto corresponde?</label>
-    <div class="search-wrap" style="margin-bottom:12px;">
+    <div class="modal-title">Código no reconocido</div>
+    <div class="modal-subtitle" id="barcodeModalCode">—</div>
+    <label class="form-label" style="margin-bottom:6px;">Vincular a un producto del catálogo:</label>
+    <div class="search-wrap" style="margin-bottom:8px;">
       <span class="search-icon">🔍</span>
       <input type="text" class="search-input" id="barcodeModalSearch"
-             placeholder="Buscar producto..." oninput="onBarcodeModalSearch()">
-      <div class="search-results hidden" id="barcodeModalResults"></div>
+             placeholder="Filtrar productos..." oninput="onBarcodeModalSearch()">
     </div>
+    <!-- Lista siempre visible — sin typing requerido -->
+    <div id="barcodeModalResults"
+         style="max-height:240px; overflow-y:auto; border:1px solid var(--border-light);
+                border-radius:12px; margin-bottom:12px; background:#1e293b;"></div>
     <div style="display:flex; gap:8px;">
       <button class="save-btn" id="barcodeModalAssignBtn" disabled
               onclick="assignBarcode()" style="margin:0; flex:1; padding:12px;">
-        ASIGNAR
+        VINCULAR
       </button>
       <button onclick="closeBarcodeModal()"
               style="flex:1; padding:12px; border-radius:12px; border:1px solid var(--border-light);
@@ -2192,14 +2195,50 @@ async function persistSku(product) {
 // ============================================================
 // BARCODE MODAL (unknown barcode assignment)
 // ============================================================
+function renderBarcodeModalList(query) {
+  const resultsEl = document.getElementById("barcodeModalResults");
+  if (!resultsEl) return;
+
+  const q = (query || "").toLowerCase().trim();
+  const all = state.products;
+
+  if (!all.length) {
+    resultsEl.innerHTML = `<div style="padding:14px 16px; color:var(--text-muted); font-size:13px;">
+      Sin productos cargados. Verificá la conexión.</div>`;
+    return;
+  }
+
+  lastBarcodeMatches = q
+    ? all.filter(p => p.nombre.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q)))
+    : all.slice();
+
+  if (!lastBarcodeMatches.length) {
+    resultsEl.innerHTML = `<div style="padding:14px 16px; color:var(--text-muted); font-size:13px;">Sin resultados.</div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = lastBarcodeMatches.map((p, i) => `
+    <div class="search-result-item" data-idx="${i}"
+         style="border-bottom:1px solid var(--border); padding:12px 16px; cursor:pointer;
+                display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <div style="font-size:14px; font-weight:600; color:var(--text);">${escHtml(p.nombre)}</div>
+        <div style="font-size:11px; color:var(--text-muted);">${escHtml(p.categoria || "")}${p.unidad ? " · " + p.unidad : ""}</div>
+      </div>
+      <div style="font-size:11px; color:var(--text-dim); margin-left:8px;">${escHtml(p.sku || "sin SKU")}</div>
+    </div>
+  `).join("");
+}
+
 function showBarcodeModal(code) {
   barcodeModalCode    = code;
   barcodeModalProduct = null;
   document.getElementById("barcodeModalCode").textContent = "Código: " + code;
   document.getElementById("barcodeModalSearch").value = "";
-  document.getElementById("barcodeModalResults").classList.add("hidden");
   document.getElementById("barcodeModalAssignBtn").disabled = true;
+  renderBarcodeModalList("");
   document.getElementById("barcodeModal").classList.remove("hidden");
+  document.getElementById("barcodeModalSearch").focus();
 }
 
 function closeBarcodeModal() {
@@ -2209,24 +2248,8 @@ function closeBarcodeModal() {
 }
 
 function onBarcodeModalSearch() {
-  const query     = (document.getElementById("barcodeModalSearch")?.value || "").toLowerCase().trim();
-  const resultsEl = document.getElementById("barcodeModalResults");
-  if (!resultsEl) return;
-  if (!query) { resultsEl.classList.add("hidden"); return; }
-
-  lastBarcodeMatches = state.products.filter(p =>
-    p.nombre.toLowerCase().includes(query)
-  ).slice(0, 6);
-
-  resultsEl.innerHTML = lastBarcodeMatches.map((p, i) => `
-    <div class="search-result-item" data-idx="${i}">
-      <div>
-        <div class="search-result-name">${escHtml(p.nombre)}</div>
-        <div class="search-result-meta">${escHtml(p.categoria || "")}</div>
-      </div>
-    </div>
-  `).join("");
-  resultsEl.classList.remove("hidden");
+  const query = document.getElementById("barcodeModalSearch")?.value || "";
+  renderBarcodeModalList(query);
 }
 
 function selectBarcodeProductByIdx(idx) {
@@ -2234,8 +2257,11 @@ function selectBarcodeProductByIdx(idx) {
   if (!p) return;
   barcodeModalProduct = p;
   document.getElementById("barcodeModalSearch").value = p.nombre;
-  document.getElementById("barcodeModalResults").classList.add("hidden");
   document.getElementById("barcodeModalAssignBtn").disabled = false;
+  // Highlight selected row
+  document.querySelectorAll("#barcodeModalResults .search-result-item").forEach((el, i) => {
+    el.style.background = i === idx ? "#1e3a5f" : "";
+  });
 }
 
 async function assignBarcode() {
